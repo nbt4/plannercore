@@ -11,6 +11,8 @@ import ChartsView from './components/charts/ChartsView'
 import TimelineView from './components/timeline/TimelineView'
 import PeopleView from './components/people/PeopleView'
 import GoalsView from './components/goals/GoalsView'
+import MyTasksPage from './pages/MyTasksPage'
+import MyDayPage from './pages/MyDayPage'
 
 function PlanLayout() {
   return (
@@ -42,8 +44,8 @@ export default function App() {
           <WebSocketProvider>
             <Routes>
               <Route path="/plan/:planId/*" element={<PlanLayout />} />
-              <Route path="/my/tasks" element={<div>My Tasks</div>} />
-              <Route path="/my/day" element={<div>My Day</div>} />
+              <Route path="/my/tasks" element={<MyTasksPage />} />
+              <Route path="/my/day" element={<MyDayPage />} />
               <Route path="*" element={<Navigate to="/plan/new" />} />
             </Routes>
           </WebSocketProvider>
