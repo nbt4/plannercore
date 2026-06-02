@@ -79,3 +79,34 @@ func (sv *SessionValidator) GetCurrentUser(c *gin.Context) (*User, bool) {
 	user, ok := userVal.(*User)
 	return user, ok
 }
+
+func (sv *SessionValidator) RequirePlanMember(paramName string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, ok := sv.GetCurrentUser(c)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+			c.Abort()
+			return
+		}
+		planID := c.Param(paramName)
+		if planID == "" {
+			planID = c.Query(paramName)
+		}
+		if planID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "plan identifier required"})
+			c.Abort()
+			return
+		}
+		var count int64
+		sv.db.Model(&struct {
+			PlanID string `gorm:"column:plan_id"`
+			UserID string `gorm:"column:user_id"`
+		}{}).Table("planner_members").Where("plan_id = ? AND user_id = ?", planID, user.ID).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied — not a plan member"})
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

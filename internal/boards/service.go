@@ -33,7 +33,7 @@ func (s *Service) CreateBucket(planID, name string) (*core.Bucket, error) {
 }
 
 func (s *Service) UpdateBucket(id, name string) error {
-	return s.repo.Update(&core.Bucket{ID: id, Name: name})
+	return s.repo.UpdateName(id, name)
 }
 
 func (s *Service) DeleteBucket(id string) error {

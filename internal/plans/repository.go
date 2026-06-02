@@ -63,6 +63,12 @@ func (r *Repository) ToggleFavorite(id string) error {
 	return r.db.Exec("UPDATE planner_plans SET is_favorite = NOT is_favorite WHERE id = ?", id).Error
 }
 
+func (r *Repository) IsMember(planID, userID string) (bool, error) {
+	var count int64
+	err := r.db.Model(&core.Member{}).Where("plan_id = ? AND user_id = ?", planID, userID).Count(&count).Error
+	return count > 0, err
+}
+
 func (r *Repository) Copy(originalID, newID, userID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		var original core.Plan

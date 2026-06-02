@@ -52,52 +52,56 @@ func main() {
 	api := r.Group("/api/v1/planner")
 	api.Use(sessionValidator.Middleware())
 
-	// Plan handlers
+	// Plan-scoped routes require plan membership
+	planRoutes := api.Group("")
+	planRoutes.Use(sessionValidator.RequirePlanMember("planId"))
+
+	// Plan handlers (plan-scoped)
 	planRepo := plans.NewRepository(db)
 	planService := plans.NewService(planRepo, eventBus)
 	planHandler := plans.NewHandler(planService, sessionValidator)
 	planHandler.RegisterRoutes(api)
 
-	// Board (bucket) handlers
+	// Board (bucket) handlers (plan-scoped)
 	boardRepo := boards.NewRepository(db)
 	boardService := boards.NewService(boardRepo, eventBus)
 	boardHandler := boards.NewHandler(boardService, sessionValidator)
-	boardHandler.RegisterRoutes(api)
+	boardHandler.RegisterRoutes(planRoutes)
 
-	// Task handlers
+	// Task handlers (mixed: list/create are plan-scoped, task/:id operations check internally)
 	taskRepo := tasks.NewRepository(db)
 	taskService := tasks.NewService(taskRepo, eventBus)
 	taskHandler := tasks.NewHandler(taskService, taskRepo, sessionValidator)
 	taskHandler.RegisterRoutes(api)
 
-	// Label handlers
+	// Label handlers (plan-scoped)
 	labelHandler := labels.NewHandler(db, sessionValidator)
-	labelHandler.RegisterRoutes(api)
+	labelHandler.RegisterRoutes(planRoutes)
 
 	// WebSocket hub
-	hub := websocket.NewHub(eventBus)
+	hub := websocket.NewHub(eventBus, db)
 	go hub.Run()
-	api.GET("/ws", hub.HandleWebSocket)
+	planRoutes.GET("/ws", hub.HandleWebSocket)
 
-	// Timeline handlers
+	// Timeline handlers (plan-scoped)
 	timelineHandler := timeline.NewHandler(db, sessionValidator)
-	timelineHandler.RegisterRoutes(api)
+	timelineHandler.RegisterRoutes(planRoutes)
 
-	// Sprint handlers
+	// Sprint handlers (plan-scoped)
 	sprintHandler := sprints.NewHandler(db, sessionValidator)
-	sprintHandler.RegisterRoutes(api)
+	sprintHandler.RegisterRoutes(planRoutes)
 
-	// Goal handlers
+	// Goal handlers (plan-scoped)
 	goalHandler := goals.NewHandler(db, sessionValidator)
-	goalHandler.RegisterRoutes(api)
+	goalHandler.RegisterRoutes(planRoutes)
 
-	// Analytics handlers
+	// Analytics handlers (plan-scoped)
 	analyticsHandler := analytics.NewHandler(db, sessionValidator)
-	analyticsHandler.RegisterRoutes(api)
+	analyticsHandler.RegisterRoutes(planRoutes)
 
-	// Integration handlers
+	// Integration handlers (plan-scoped)
 	integrationHandler := integration.NewHandler(db, sessionValidator)
-	integrationHandler.RegisterRoutes(api)
+	integrationHandler.RegisterRoutes(planRoutes)
 
 	// SPA fallback - serve index.html for all non-API routes
 	r.NoRoute(func(c *gin.Context) {

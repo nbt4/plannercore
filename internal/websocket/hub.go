@@ -10,16 +10,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	gorilla "github.com/gorilla/websocket"
+	"gorm.io/gorm"
 )
 
 var upgrader = gorilla.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true
+		origin := r.Header.Get("Origin")
+		host := r.Host
+		return origin == "" || origin == "http://"+host || origin == "https://"+host ||
+			origin == "http://localhost:3003" || origin == "http://localhost:3000"
 	},
 }
 
 type Hub struct {
 	eventBus *core.EventBus
+	db       *gorm.DB
 	clients  map[string]map[*Client]bool
 	mu       sync.RWMutex
 }
@@ -31,9 +36,10 @@ type Client struct {
 	send   chan []byte
 }
 
-func NewHub(eventBus *core.EventBus) *Hub {
+func NewHub(eventBus *core.EventBus, db *gorm.DB) *Hub {
 	return &Hub{
 		eventBus: eventBus,
+		db:       db,
 		clients:  make(map[string]map[*Client]bool),
 	}
 }
@@ -66,6 +72,19 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 	planID := c.Query("planId")
 	if planID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "planId query parameter required"})
+		return
+	}
+
+	// Verify user is a plan member (membership middleware already ran via planRoutes)
+	userID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+		return
+	}
+	var count int64
+	h.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", planID, userID).Count(&count)
+	if count == 0 {
+		c.JSON(http.StatusForbidden, gin.H{"error": "not a plan member"})
 		return
 	}
 

@@ -35,6 +35,10 @@ func (r *Repository) Update(bucket *core.Bucket) error {
 	return r.db.Save(bucket).Error
 }
 
+func (r *Repository) UpdateName(id, name string) error {
+	return r.db.Model(&core.Bucket{}).Where("id = ?", id).Update("name", name).Error
+}
+
 func (r *Repository) Delete(id string) error {
 	return r.db.Delete(&core.Bucket{}, "id = ?", id).Error
 }
