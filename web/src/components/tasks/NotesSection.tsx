@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FileText } from 'lucide-react';
+import DOMPurify from 'dompurify';
 import { api } from '../../services/plannerApi';
 
 interface NotesSectionProps {
@@ -16,13 +17,14 @@ export default function NotesSection({ taskId, initialValue = '' }: NotesSection
     if (isFirstRender.current) {
       isFirstRender.current = false;
       if (divRef.current && initialValue) {
-        divRef.current.innerHTML = initialValue;
+        divRef.current.innerHTML = DOMPurify.sanitize(initialValue);
       }
     }
   }, [initialValue]);
 
   const handleBlur = async () => {
-    const html = divRef.current?.innerHTML || '';
+    const rawHtml = divRef.current?.innerHTML || '';
+    const html = DOMPurify.sanitize(rawHtml);
     if (html !== initialValue) {
       try {
         await api.tasks.update(taskId, { richTextNotes: html });
