@@ -1,0 +1,29 @@
+@import "tailwindcss";
+@import "../../../theme/tsunami-theme.css";
+
+:root {
+  --planner-priority-urgent: var(--color-danger, #ef4444);
+  --planner-priority-important: var(--color-warning, #f59e0b);
+  --planner-priority-medium: var(--color-info, #3b82f6);
+  --planner-priority-low: var(--color-muted, #6b7280);
+
+  --planner-label-red: #ef4444;
+  --planner-label-blue: #3b82f6;
+  --planner-label-green: #22c55e;
+  --planner-label-yellow: #eab308;
+  --planner-label-purple: #a855f7;
+  --planner-label-orange: #f97316;
+  --planner-label-pink: #ec4899;
+  --planner-label-teal: #14b8a6;
+
+  --planner-card-shadow: var(--shadow-sm);
+  --planner-card-radius: var(--radius-lg);
+  --planner-bucket-bg: var(--color-surface-raised);
+  --planner-sidebar-width: 280px;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
+}
