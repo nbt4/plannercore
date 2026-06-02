@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../../../theme/tsunami-theme.css";
+@import "./theme-tsunami.css";
 
 :root {
   /* Planner-specific color aliases - point to theme variables */
