@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { Paperclip, Upload, Trash2, Download, File } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 
+function isValidUrl(url: string): boolean {
+  try {
+    const p = new URL(url, location.origin);
+    return p.protocol === 'http:' || p.protocol === 'https:';
+  } catch { return false; }
+}
+
 interface Attachment {
   id: string;
   filename: string;
@@ -146,7 +153,7 @@ export default function AttachmentsSection({ taskId }: AttachmentsSectionProps) 
                 </div>
               )}
             </div>
-            {att.url && (
+            {att.url && isValidUrl(att.url) && (
               <a
                 href={att.url}
                 target="_blank"
