@@ -4,8 +4,18 @@ import (
 	"log"
 	"os"
 
+	"plannercore/internal/analytics"
 	"plannercore/internal/auth"
+	"plannercore/internal/boards"
 	"plannercore/internal/core"
+	"plannercore/internal/goals"
+	"plannercore/internal/integration"
+	"plannercore/internal/labels"
+	"plannercore/internal/plans"
+	"plannercore/internal/sprints"
+	"plannercore/internal/tasks"
+	"plannercore/internal/timeline"
+	"plannercore/internal/websocket"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/postgres"
@@ -42,8 +52,52 @@ func main() {
 	api := r.Group("/api/v1/planner")
 	api.Use(sessionValidator.Middleware())
 
-	// Handler registration will be added in subsequent tasks
-	_ = eventBus
+	// Plan handlers
+	planRepo := plans.NewRepository(db)
+	planService := plans.NewService(planRepo, eventBus)
+	planHandler := plans.NewHandler(planService, sessionValidator)
+	planHandler.RegisterRoutes(api)
+
+	// Board (bucket) handlers
+	boardRepo := boards.NewRepository(db)
+	boardService := boards.NewService(boardRepo, eventBus)
+	boardHandler := boards.NewHandler(boardService, sessionValidator)
+	boardHandler.RegisterRoutes(api)
+
+	// Task handlers
+	taskRepo := tasks.NewRepository(db)
+	taskService := tasks.NewService(taskRepo, eventBus)
+	taskHandler := tasks.NewHandler(taskService, taskRepo, sessionValidator)
+	taskHandler.RegisterRoutes(api)
+
+	// Label handlers
+	labelHandler := labels.NewHandler(db, sessionValidator)
+	labelHandler.RegisterRoutes(api)
+
+	// WebSocket hub
+	hub := websocket.NewHub(eventBus)
+	go hub.Run()
+	api.GET("/ws", hub.HandleWebSocket)
+
+	// Timeline handlers
+	timelineHandler := timeline.NewHandler(db, sessionValidator)
+	timelineHandler.RegisterRoutes(api)
+
+	// Sprint handlers
+	sprintHandler := sprints.NewHandler(db, sessionValidator)
+	sprintHandler.RegisterRoutes(api)
+
+	// Goal handlers
+	goalHandler := goals.NewHandler(db, sessionValidator)
+	goalHandler.RegisterRoutes(api)
+
+	// Analytics handlers
+	analyticsHandler := analytics.NewHandler(db, sessionValidator)
+	analyticsHandler.RegisterRoutes(api)
+
+	// Integration handlers
+	integrationHandler := integration.NewHandler(db, sessionValidator)
+	integrationHandler.RegisterRoutes(api)
 
 	// SPA fallback - serve index.html for all non-API routes
 	r.NoRoute(func(c *gin.Context) {
