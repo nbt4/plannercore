@@ -103,6 +103,9 @@ func main() {
 	integrationHandler := integration.NewHandler(db, sessionValidator)
 	integrationHandler.RegisterRoutes(planRoutes)
 
+	// Serve static assets (JS, CSS, images) from the frontend build
+	r.Static("/assets", "./web/dist/assets")
+
 	// SPA fallback - serve index.html for all non-API routes
 	r.NoRoute(func(c *gin.Context) {
 		c.File("web/dist/index.html")
