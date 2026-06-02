@@ -2,6 +2,7 @@ server
 plannercore
 *.db
 .env
+.env.*
 uploads/
 logs/
 archives/
@@ -13,3 +14,14 @@ web/dist/
 *.swp
 *.bak
 tmp/
+*.pem
+*.key
+*.crt
+*.token
+*.log
+vendor/
+dist/
+build/
+coverage/
+*.cover
+.claude/
