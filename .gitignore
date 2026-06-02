@@ -1,0 +1,15 @@
+server
+plannercore
+*.db
+.env
+uploads/
+logs/
+archives/
+node_modules/
+web/dist/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.bak
+tmp/
