@@ -2,10 +2,18 @@
 @import "../../../theme/tsunami-theme.css";
 
 :root {
-  --planner-priority-urgent: var(--color-danger, #ef4444);
-  --planner-priority-important: var(--color-warning, #f59e0b);
-  --planner-priority-medium: var(--color-info, #3b82f6);
-  --planner-priority-low: var(--color-muted, #6b7280);
+  /* Planner-specific color aliases - point to theme variables */
+  --color-surface: var(--surface-0);
+  --color-surface-raised: var(--surface-2);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-danger: var(--color-error);
+  --color-muted: var(--text-muted);
+
+  --planner-priority-urgent: var(--color-danger);
+  --planner-priority-important: var(--color-warning);
+  --planner-priority-medium: var(--color-info);
+  --planner-priority-low: var(--color-muted);
 
   --planner-label-red: #ef4444;
   --planner-label-blue: #3b82f6;
