@@ -1,10 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 interface AuthUser {
-  id: string;
+  userId: number;
   username: string;
-  email?: string;
-  avatarUrl?: string;
+  isAdmin: boolean;
 }
 
 interface AuthContextValue {
@@ -19,23 +18,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/v1/planner/plans', { credentials: 'include' })
+    fetch('/api/v1/planner/me', { credentials: 'include' })
       .then((r) => {
-        if (r.ok) {
-          // Try to get user info from response headers or a dedicated endpoint
-          return r.json().then((data) => {
-            // If we can reach the API and get plans, we're authenticated.
-            // Extract user info from the response if available.
-            setUser({ id: 'session', username: 'User' });
-          });
-        } else if (r.status === 401) {
-          setUser(null);
-        } else {
-          setUser(null);
-        }
+        if (r.ok) return r.json();
+        throw new Error('Not authenticated');
+      })
+      .then((data) => {
+        setUser({
+          userId: data.userId,
+          username: data.username,
+          isAdmin: data.isAdmin,
+        });
       })
       .catch(() => {
         setUser(null);
+        // Redirect to login if not on login page
+        if (window.location.pathname !== '/login') {
+          const loginUrl = `${window.location.origin}/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+          window.location.href = loginUrl;
+        }
       })
       .finally(() => setLoading(false));
   }, []);

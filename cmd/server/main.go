@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -51,6 +52,16 @@ func main() {
 
 	api := r.Group("/api/v1/planner")
 	api.Use(sessionValidator.Middleware())
+
+	// Me endpoint - returns current user info (for auth check)
+	api.GET("/me", func(c *gin.Context) {
+		user, _ := sessionValidator.GetCurrentUser(c)
+		c.JSON(200, gin.H{
+			"userId":   fmt.Sprintf("%d", user.UserID),
+			"username": user.Username,
+			"isAdmin":  user.IsAdmin,
+		})
+	})
 
 	// Plan-scoped routes require plan membership
 	planRoutes := api.Group("")

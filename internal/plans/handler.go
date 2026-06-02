@@ -1,6 +1,7 @@
 package plans
 
 import (
+	"fmt"
 	"net/http"
 
 	"plannercore/internal/auth"
@@ -30,7 +31,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 func (h *Handler) ListPlans(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	plans, err := h.service.ListPlans(user.ID)
+	plans, err := h.service.ListPlans(fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -57,7 +58,7 @@ func (h *Handler) CreatePlan(c *gin.Context) {
 		return
 	}
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	plan, err := h.service.CreatePlan(input.Name, input.Description, user.ID)
+	plan, err := h.service.CreatePlan(input.Name, input.Description, fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -99,7 +100,7 @@ func (h *Handler) ToggleFavorite(c *gin.Context) {
 
 func (h *Handler) CopyPlan(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	plan, err := h.service.CopyPlan(c.Param("planId"), user.ID)
+	plan, err := h.service.CopyPlan(c.Param("planId"), fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

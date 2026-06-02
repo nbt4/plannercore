@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LayoutDashboard } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { api } from '../../services/plannerApi';
@@ -50,6 +50,27 @@ export default function Sidebar() {
     >
       {/* Navigation Links */}
       <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+        <a
+          href="/"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-2)',
+            padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-md)',
+            textDecoration: 'none',
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-medium)',
+            color: 'var(--text-secondary)',
+            backgroundColor: 'transparent',
+            transition: 'all var(--transition-fast)',
+            marginBottom: 'var(--space-2)',
+            border: '1px solid var(--border-default)',
+          }}
+        >
+          <LayoutDashboard size={18} />
+          <span>Cores Dashboard</span>
+        </a>
         <NavLink
           to="/my/tasks"
           style={({ isActive }) => ({

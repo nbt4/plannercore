@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"fmt"
 	"net/http"
 
 	"plannercore/internal/auth"
@@ -84,7 +85,7 @@ func (h *Handler) CreateTask(c *gin.Context) {
 		return
 	}
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	task, err := h.service.CreateTask(c.Param("planId"), input.BucketID, input.Title, user.ID)
+	task, err := h.service.CreateTask(c.Param("planId"), input.BucketID, input.Title, fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -99,7 +100,7 @@ func (h *Handler) UpdateTask(c *gin.Context) {
 		return
 	}
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	task, err := h.service.UpdateTask(c.Param("taskId"), updates, user.ID)
+	task, err := h.service.UpdateTask(c.Param("taskId"), updates, fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,7 +110,7 @@ func (h *Handler) UpdateTask(c *gin.Context) {
 
 func (h *Handler) DeleteTask(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	if err := h.service.DeleteTask(c.Param("taskId"), user.ID); err != nil {
+	if err := h.service.DeleteTask(c.Param("taskId"), fmt.Sprintf("%d", user.UserID)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -139,7 +140,7 @@ func (h *Handler) UpdateProgress(c *gin.Context) {
 		Type:    core.EventTaskUpdated,
 		PlanID:  task.PlanID,
 		Payload: task,
-		UserID:  user.ID,
+		UserID:  fmt.Sprintf("%d", user.UserID),
 	})
 	c.JSON(http.StatusOK, task)
 }
@@ -262,7 +263,7 @@ func (h *Handler) AddComment(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
 	comment := core.Comment{
 		TaskID:  c.Param("taskId"),
-		UserID:  user.ID,
+		UserID:  fmt.Sprintf("%d", user.UserID),
 		Content: input.Content,
 	}
 	if err := h.repo.db.Create(&comment).Error; err != nil {
@@ -290,7 +291,7 @@ func (h *Handler) AddAttachment(c *gin.Context) {
 		FilePath:   input.FilePath,
 		FileSize:   input.FileSize,
 		MimeType:   input.MimeType,
-		UploadedBy: user.ID,
+		UploadedBy: fmt.Sprintf("%d", user.UserID),
 	}
 	if err := h.repo.db.Create(&attachment).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -309,7 +310,7 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 
 func (h *Handler) GetMyTasks(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	tasks, err := h.service.GetMyTasks(user.ID)
+	tasks, err := h.service.GetMyTasks(fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -319,7 +320,7 @@ func (h *Handler) GetMyTasks(c *gin.Context) {
 
 func (h *Handler) GetMyDay(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	tasks, err := h.service.GetMyDay(user.ID)
+	tasks, err := h.service.GetMyDay(fmt.Sprintf("%d", user.UserID))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -329,7 +330,7 @@ func (h *Handler) GetMyDay(c *gin.Context) {
 
 func (h *Handler) AddToMyDay(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	if err := h.service.AddToMyDay(user.ID, c.Param("taskId")); err != nil {
+	if err := h.service.AddToMyDay(fmt.Sprintf("%d", user.UserID), c.Param("taskId")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -338,7 +339,7 @@ func (h *Handler) AddToMyDay(c *gin.Context) {
 
 func (h *Handler) RemoveFromMyDay(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	if err := h.service.RemoveFromMyDay(user.ID, c.Param("taskId")); err != nil {
+	if err := h.service.RemoveFromMyDay(fmt.Sprintf("%d", user.UserID), c.Param("taskId")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
