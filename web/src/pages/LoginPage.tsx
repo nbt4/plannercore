@@ -24,8 +24,15 @@ export default function LoginPage() {
       if (res.ok) {
         refetch()
         const params = new URLSearchParams(window.location.search)
-        const redirect = params.get('redirect') || '/'
-        window.location.href = redirect
+        const raw = params.get('redirect') || '/'
+        // Validate redirect: only allow same-origin relative paths
+        const safe = (() => {
+          try {
+            const url = new URL(raw, window.location.origin)
+            return url.origin === window.location.origin ? url.pathname + url.search : '/'
+          } catch { return '/' }
+        })()
+        window.location.href = safe
       } else {
         const data = await res.json().catch(() => ({}))
         setError(data.error || 'Anmeldung fehlgeschlagen')
