@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"plannercore/internal/analytics"
 	"plannercore/internal/auth"
@@ -19,6 +21,8 @@ import (
 	"plannercore/internal/websocket"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -48,6 +52,60 @@ func main() {
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "plannercore"})
+	})
+
+	// Login/Logout (same logic as cores-dashboard)
+	r.POST("/api/v1/auth/login", func(c *gin.Context) {
+		var req struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+			return
+		}
+
+		var user auth.User
+		if err := db.Where("username = ? AND is_active = ?", req.Username, true).First(&user).Error; err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		claims := &auth.Claims{
+			UserID:   user.UserID,
+			Username: user.Username,
+			IsAdmin:  user.IsAdmin,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+			},
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signed, err := token.SignedString([]byte(auth.JWTSecret()))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token error"})
+			return
+		}
+
+		c.SetSameSite(http.SameSiteLaxMode)
+		c.SetCookie("cores_token", signed, 86400, "/", "", false, true)
+		c.JSON(http.StatusOK, gin.H{
+			"success":  true,
+			"username": user.Username,
+			"is_admin": user.IsAdmin,
+		})
+	})
+
+	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
+		c.SetSameSite(http.SameSiteLaxMode)
+		c.SetCookie("cores_token", "", -1, "/", "", false, true)
+		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
 	api := r.Group("/api/v1/planner")
@@ -114,10 +172,11 @@ func main() {
 	integrationHandler := integration.NewHandler(db, sessionValidator)
 	integrationHandler.RegisterRoutes(planRoutes)
 
-	// Serve static assets (JS, CSS, images) from the frontend build
+	// Serve static assets (both /assets and /planner/assets for cached clients)
 	r.Static("/assets", "./web/dist/assets")
+	r.Static("/planner/assets", "./web/dist/assets")
 
-	// SPA fallback - serve index.html for all non-API routes
+	// SPA fallback for /planner/* (cached clients with old base path)
 	r.NoRoute(func(c *gin.Context) {
 		c.File("web/dist/index.html")
 	})

@@ -3,7 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/planner/',
+  base: '/',
+  define: {
+    __DASHBOARD_URL__: JSON.stringify('/'),
+  },
   server: {
     port: 3003,
     proxy: {

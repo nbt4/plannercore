@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 interface AuthUser {
   userId: number;
@@ -9,15 +9,20 @@ interface AuthUser {
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
+  refetch: () => void;
 }
 
-const AuthContext = createContext<AuthContextValue>({ user: null, loading: true });
+const AuthContext = createContext<AuthContextValue>({ user: null, loading: true, refetch: () => {} });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchId, setFetchId] = useState(0);
+
+  const refetch = useCallback(() => setFetchId((n) => n + 1), []);
 
   useEffect(() => {
+    setLoading(true);
     fetch('/api/v1/planner/me', { credentials: 'include' })
       .then((r) => {
         if (r.ok) return r.json();
@@ -32,17 +37,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         setUser(null);
-        // Redirect to login if not on login page
+        // Redirect to login unless already there
         if (window.location.pathname !== '/login') {
-          const loginUrl = `${window.location.origin}/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-          window.location.href = loginUrl;
+          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
         }
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [fetchId]);
 
   return (
-    <AuthContext.Provider value={{ user, loading }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, refetch }}>{children}</AuthContext.Provider>
   );
 }
 

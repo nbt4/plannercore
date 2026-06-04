@@ -51,7 +51,7 @@ export default function Sidebar() {
       {/* Navigation Links */}
       <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <a
-          href="/"
+          href={__DASHBOARD_URL__ || '/'}
           style={{
             display: 'flex',
             alignItems: 'center',

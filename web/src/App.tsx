@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { PlanProvider } from './contexts/PlanContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import Sidebar from './components/layout/Sidebar'
@@ -13,6 +13,7 @@ import PeopleView from './components/people/PeopleView'
 import GoalsView from './components/goals/GoalsView'
 import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
+import LoginPage from './pages/LoginPage'
 
 function PlanLayout() {
   return (
@@ -36,16 +37,42 @@ function PlanLayout() {
   )
 }
 
-export default function App() {
+function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <BrowserRouter basename={import.meta.env.BASE_URL || '/'}>
+    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-surface)' }}>
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth()
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--color-surface)' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Laden...</p>
+      </div>
+    )
+  }
+  if (!user) return <Navigate to="/login" />
+  return <>{children}</>
+}
+
+export default function App() {
+  const basename = import.meta.env.BASE_URL !== '/' ? import.meta.env.BASE_URL : undefined;
+  return (
+    <BrowserRouter basename={basename}>
       <AuthProvider>
         <PlanProvider>
           <WebSocketProvider>
             <Routes>
-              <Route path="/plan/:planId/*" element={<PlanLayout />} />
-              <Route path="/my/tasks" element={<MyTasksPage />} />
-              <Route path="/my/day" element={<MyDayPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/plan/:planId/*" element={<AuthGate><PlanLayout /></AuthGate>} />
+              <Route path="/my/tasks" element={<AuthGate><AppLayout><MyTasksPage /></AppLayout></AuthGate>} />
+              <Route path="/my/day" element={<AuthGate><AppLayout><MyDayPage /></AppLayout></AuthGate>} />
               <Route path="*" element={<Navigate to="/plan/new" />} />
             </Routes>
           </WebSocketProvider>
