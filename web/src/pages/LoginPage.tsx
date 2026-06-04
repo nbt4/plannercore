@@ -69,22 +69,16 @@ export default function LoginPage() {
           gap: 'var(--space-4)',
         }}
       >
-        <div style={{ textAlign: 'center' }}>
-          <h1
-            style={{
-              fontSize: 'var(--text-xl)',
-              fontWeight: 'var(--weight-black)',
-              color: 'var(--text-primary)',
-              margin: 0,
-            }}
-          >
-            PlannerCore
-          </h1>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <img
+            src="/logos/plannercore_black_full.svg"
+            alt="PlannerCore"
+            style={{ height: 36 }}
+          />
           <p
             style={{
               fontSize: 'var(--text-sm)',
               color: 'var(--text-muted)',
-              marginTop: 'var(--space-1)',
             }}
           >
             Mit Cores-Konto anmelden

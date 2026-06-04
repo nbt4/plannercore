@@ -20,12 +20,17 @@ export default function PlanHeader() {
           height: 56,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: 'space-between',
           borderBottom: 'var(--border-default)',
           backgroundColor: 'var(--surface-0)',
           padding: '0 var(--space-4)',
         }}
       >
+        <img
+          src="/logos/plannercore_black_icon.svg"
+          alt="PlannerCore"
+          style={{ height: 24 }}
+        />
         <ViewSwitcher />
       </header>
     );
@@ -76,8 +81,13 @@ export default function PlanHeader() {
         flexShrink: 0,
       }}
     >
-      {/* Plan Name & Star */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', minWidth: 0 }}>
+      {/* Logo & Plan Name & Star */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+        <img
+          src="/logos/plannercore_black_icon.svg"
+          alt="PlannerCore"
+          style={{ height: 24, flexShrink: 0 }}
+        />
         <h1
           style={{
             margin: 0,

@@ -48,6 +48,15 @@ export default function Sidebar() {
         overflow: 'hidden',
       }}
     >
+      {/* Logo */}
+      <div style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
+        <img
+          src="/logos/plannercore_black_full.svg"
+          alt="PlannerCore"
+          style={{ height: 24, display: 'block' }}
+        />
+      </div>
+
       {/* Navigation Links */}
       <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <a
