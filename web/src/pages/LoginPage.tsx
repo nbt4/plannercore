@@ -73,7 +73,7 @@ export default function LoginPage() {
           <img
             src="/logos/plannercore_white_side.svg"
             alt="PlannerCore"
-            style={{ height: 36 }}
+            style={{ height: 64 }}
           />
           <p
             style={{

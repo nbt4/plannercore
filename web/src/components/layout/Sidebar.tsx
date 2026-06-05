@@ -53,7 +53,7 @@ export default function Sidebar() {
         <img
           src="/logos/plannercore_white_side.svg"
           alt="PlannerCore"
-          style={{ height: 24, display: 'block' }}
+          style={{ height: 40, display: 'block' }}
         />
       </div>
 

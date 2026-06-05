@@ -29,7 +29,7 @@ export default function PlanHeader() {
         <img
           src="/logos/plannercore_white_icon.svg"
           alt="PlannerCore"
-          style={{ height: 24 }}
+          style={{ height: 28 }}
         />
         <ViewSwitcher />
       </header>
@@ -86,7 +86,7 @@ export default function PlanHeader() {
         <img
           src="/logos/plannercore_black_icon.svg"
           alt="PlannerCore"
-          style={{ height: 24, flexShrink: 0 }}
+          style={{ height: 28, flexShrink: 0 }}
         />
         <h1
           style={{
