@@ -51,7 +51,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
         <img
-          src="/logos/plannercore_white_full.svg"
+          src="/logos/plannercore_white_side.svg"
           alt="PlannerCore"
           style={{ height: 24, display: 'block' }}
         />
