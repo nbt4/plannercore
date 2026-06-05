@@ -27,7 +27,7 @@ export default function PlanHeader() {
         }}
       >
         <img
-          src="/logos/plannercore_black_icon.svg"
+          src="/logos/plannercore_white_icon.svg"
           alt="PlannerCore"
           style={{ height: 24 }}
         />

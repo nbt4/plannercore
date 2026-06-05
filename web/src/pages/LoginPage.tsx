@@ -71,7 +71,7 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
           <img
-            src="/logos/plannercore_black_full.svg"
+            src="/logos/plannercore_white_full.svg"
             alt="PlannerCore"
             style={{ height: 36 }}
           />
