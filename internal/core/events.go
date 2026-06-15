@@ -1,6 +1,9 @@
 package core
 
-import "time"
+import (
+	"sync"
+	"time"
+) // FIXED: added sync import for RWMutex
 
 type EventType string
 
@@ -28,7 +31,9 @@ type PlanEvent struct {
 	Timestamp time.Time   `json:"timestamp"`
 }
 
+// FIXED: Added sync.RWMutex to protect all map operations from concurrent HTTP + WebSocket access
 type EventBus struct {
+	mu          sync.RWMutex
 	subscribers map[string][]chan PlanEvent
 }
 
@@ -39,12 +44,18 @@ func NewEventBus() *EventBus {
 }
 
 func (eb *EventBus) Subscribe(planID string) chan PlanEvent {
+	// FIXED: write lock for map mutation
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
 	ch := make(chan PlanEvent, 64)
 	eb.subscribers[planID] = append(eb.subscribers[planID], ch)
 	return ch
 }
 
 func (eb *EventBus) Unsubscribe(planID string, ch chan PlanEvent) {
+	// FIXED: write lock for map mutation
+	eb.mu.Lock()
+	defer eb.mu.Unlock()
 	subs := eb.subscribers[planID]
 	for i, sub := range subs {
 		if sub == ch {
@@ -56,6 +67,9 @@ func (eb *EventBus) Unsubscribe(planID string, ch chan PlanEvent) {
 }
 
 func (eb *EventBus) Publish(planID string, event PlanEvent) {
+	// FIXED: read lock for concurrent-safe iteration
+	eb.mu.RLock()
+	defer eb.mu.RUnlock()
 	for _, ch := range eb.subscribers[planID] {
 		select {
 		case ch <- event:

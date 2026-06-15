@@ -3,20 +3,20 @@ package auth
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"gorm.io/gorm"
+
+	commonjwt "github.com/nbt4/cores-common/pkg/jwt"
 )
 
-// JWTSecret returns the shared Cores JWT secret from env.
+// JWTSecret delegates to the shared cores-common JWT secret.
+// Checks CORES_JWT_SECRET first, then JWT_SECRET.
+// Panics if neither is set.
 func JWTSecret() string {
-	if s := os.Getenv("CORES_JWT_SECRET"); s != "" {
-		return s
-	}
-	return "dev-secret-change-me"
+	return string(commonjwt.JWTSecret())
 }
 
 // Claims mirrors cores-dashboard's JWT claims structure.
@@ -49,14 +49,8 @@ func NewSessionValidator(db *gorm.DB) *SessionValidator {
 
 // ValidateJWT parses the cores_token JWT and returns the user if valid and active in DB.
 func (sv *SessionValidator) ValidateJWT(tokenString string) (*User, bool) {
-	claims := &Claims{}
-	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return []byte(JWTSecret()), nil
-	})
-	if err != nil || !token.Valid {
+	claims, ok := commonjwt.ValidateToken(tokenString)
+	if !ok {
 		return nil, false
 	}
 

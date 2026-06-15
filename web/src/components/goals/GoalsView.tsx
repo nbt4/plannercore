@@ -82,7 +82,7 @@ export default function GoalsView() {
       return;
     }
     try {
-      await api.goals.update(id, { title });
+      await api.goals.update(planId, id, { title });
       setEditingId(null);
       fetchGoals();
     } catch (e) {
@@ -93,7 +93,7 @@ export default function GoalsView() {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Ziel wirklich löschen?')) return;
     try {
-      await api.goals.delete(id);
+      await api.goals.delete(planId, id);
       fetchGoals();
     } catch (e) {
       /* silently fail */

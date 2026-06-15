@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	commonhealth "github.com/nbt4/cores-common/pkg/health"
+
 	"plannercore/internal/analytics"
 	"plannercore/internal/auth"
 	"plannercore/internal/boards"
@@ -79,26 +81,7 @@ func main() {
 	}))
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", func(c *gin.Context) {
-		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
-		defer cancel()
-
-		if err := sqlDB.PingContext(ctx); err != nil {
-			slog.Error("Health check failed: db unreachable", "error", err)
-			c.JSON(http.StatusServiceUnavailable, gin.H{
-				"status":  "error",
-				"service": "plannercore",
-				"error":   "db unreachable",
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"service": "plannercore",
-			"version": "2.1.0",
-		})
-	})
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.1.0")))
 
 	// Login/Logout (same logic as cores-dashboard)
 	r.POST("/api/v1/auth/login", func(c *gin.Context) {

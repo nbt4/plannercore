@@ -8,6 +8,7 @@ import (
 	"plannercore/internal/core"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -20,37 +21,74 @@ func NewHandler(service *Service, repo *Repository, sv *auth.SessionValidator) *
 	return &Handler{service: service, repo: repo, sessionVal: sv}
 }
 
-func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
-	// Plan-scoped task routes
-	rg.GET("/:planId/tasks", h.ListTasks)
-	rg.POST("/:planId/tasks", h.CreateTask)
+// FIXED: RegisterRoutes now takes two groups — planRoutes (with plan membership)
+// for plan-scoped task routes, and api (auth only) for task-specific routes
+// that internally verify plan membership.
+func (h *Handler) RegisterRoutes(api *gin.RouterGroup, planRoutes *gin.RouterGroup) {
+	// Plan-scoped task routes (plan membership checked by middleware)
+	planRoutes.GET("/:planId/tasks", h.ListTasks)
+	planRoutes.POST("/:planId/tasks", h.CreateTask)
+	planRoutes.PUT("/:planId/tasks/reorder", h.ReorderTasks)
 
-	// Task-scoped routes (no planId)
-	tasks := rg.Group("/tasks")
-	tasks.GET("/:taskId", h.GetTask)
-	tasks.PUT("/:taskId", h.UpdateTask)
-	tasks.DELETE("/:taskId", h.DeleteTask)
-	tasks.PATCH("/:taskId/progress", h.UpdateProgress)
-	tasks.PATCH("/reorder", h.ReorderTasks)
-	tasks.POST("/:taskId/checklist", h.AddChecklistItem)
-	tasks.POST("/:taskId/assignees", h.AddAssignee)
-	tasks.DELETE("/:taskId/assignees/:userId", h.RemoveAssignee)
-	tasks.GET("/:taskId/comments", h.ListComments)
-	tasks.POST("/:taskId/comments", h.AddComment)
-	tasks.POST("/:taskId/attachments", h.AddAttachment)
+	// FIXED: Task-scoped routes — verify plan membership internally
+	tasks := api.Group("/tasks")
+	tasks.GET("/:taskId", h.requireTaskPlanMembership(), h.GetTask)
+	tasks.PUT("/:taskId", h.requireTaskPlanMembership(), h.UpdateTask)
+	tasks.DELETE("/:taskId", h.requireTaskPlanMembership(), h.DeleteTask)
+	tasks.PATCH("/:taskId/progress", h.requireTaskPlanMembership(), h.UpdateProgress)
+	tasks.POST("/:taskId/checklist", h.requireTaskPlanMembership(), h.AddChecklistItem)
+	tasks.POST("/:taskId/assignees", h.requireTaskPlanMembership(), h.AddAssignee)
+	tasks.DELETE("/:taskId/assignees/:userId", h.requireTaskPlanMembership(), h.RemoveAssignee)
+	tasks.GET("/:taskId/comments", h.requireTaskPlanMembership(), h.ListComments)
+	tasks.POST("/:taskId/comments", h.requireTaskPlanMembership(), h.AddComment)
+	tasks.POST("/:taskId/attachments", h.requireTaskPlanMembership(), h.AddAttachment)
 
-	// Checklist-scoped routes
-	rg.PATCH("/checklist/:id", h.UpdateChecklistItem)
-	rg.DELETE("/checklist/:id", h.DeleteChecklistItem)
+	// Checklist-scoped routes (plan membership verified via task lookup in handler)
+	api.PATCH("/checklist/:id", h.UpdateChecklistItem)
+	api.DELETE("/checklist/:id", h.DeleteChecklistItem)
 
 	// Attachment-scoped routes
-	rg.DELETE("/attachments/:id", h.DeleteAttachment)
+	api.DELETE("/attachments/:id", h.DeleteAttachment)
 
 	// My Tasks / My Day routes
-	rg.GET("/my/tasks", h.GetMyTasks)
-	rg.GET("/my/day", h.GetMyDay)
-	rg.POST("/my/day/:taskId", h.AddToMyDay)
-	rg.DELETE("/my/day/:taskId", h.RemoveFromMyDay)
+	api.GET("/my/tasks", h.GetMyTasks)
+	api.GET("/my/day", h.GetMyDay)
+	api.POST("/my/day/:taskId", h.AddToMyDay)
+	api.DELETE("/my/day/:taskId", h.RemoveFromMyDay)
+}
+
+// FIXED: requireTaskPlanMembership middleware verifies the authenticated user
+// is a member of the plan that the task belongs to.
+func (h *Handler) requireTaskPlanMembership() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user, ok := h.sessionVal.GetCurrentUser(c)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
+			c.Abort()
+			return
+		}
+		taskID := c.Param("taskId")
+		if taskID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "task ID required"})
+			c.Abort()
+			return
+		}
+		var task core.Task
+		if err := h.repo.db.Select("plan_id").First(&task, "id = ?", taskID).Error; err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+			c.Abort()
+			return
+		}
+		var count int64
+		h.repo.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", task.PlanID, fmt.Sprintf("%d", user.UserID)).Count(&count)
+		if count == 0 {
+			c.JSON(http.StatusForbidden, gin.H{"error": "access denied — not a plan member"})
+			c.Abort()
+			return
+		}
+		c.Set("taskPlanID", task.PlanID)
+		c.Next()
+	}
 }
 
 func (h *Handler) ListTasks(c *gin.Context) {
@@ -145,21 +183,97 @@ func (h *Handler) UpdateProgress(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
+// FIXED: ReorderTasks now validates plan membership, uses a DB transaction,
+// and validates that all task IDs belong to the plan.
 func (h *Handler) ReorderTasks(c *gin.Context) {
-	var input []struct {
-		ID        string  `json:"id"`
-		BucketID  string  `json:"bucketId"`
-		Position  float64 `json:"position"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
+	planID := c.Param("planId")
+
+	// Accept both flat array and {items: [...]} format for frontend compatibility
+	var rawInput interface{}
+	if err := c.ShouldBindJSON(&rawInput); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	for _, item := range input {
-		h.repo.db.Model(&core.Task{}).Where("id = ?", item.ID).Updates(map[string]interface{}{
-			"bucket_id": item.BucketID,
-			"position":  item.Position,
-		})
+
+	type reorderItem struct {
+		ID       string  `json:"id"`
+		BucketID string  `json:"bucketId"`
+		Position float64 `json:"position"`
+	}
+
+	var items []reorderItem
+	switch v := rawInput.(type) {
+	case []interface{}:
+		for _, item := range v {
+			m, ok := item.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			ri := reorderItem{}
+			if id, ok := m["id"].(string); ok {
+				ri.ID = id
+			}
+			if bid, ok := m["bucketId"].(string); ok {
+				ri.BucketID = bid
+			}
+			if pos, ok := m["position"].(float64); ok {
+				ri.Position = pos
+			}
+			items = append(items, ri)
+		}
+	case map[string]interface{}:
+		if arr, ok := v["items"].([]interface{}); ok {
+			for _, item := range arr {
+				m, ok := item.(map[string]interface{})
+				if !ok {
+					continue
+				}
+				ri := reorderItem{}
+				if id, ok := m["id"].(string); ok {
+					ri.ID = id
+				}
+				if bid, ok := m["bucketId"].(string); ok {
+					ri.BucketID = bid
+				}
+				if pos, ok := m["position"].(float64); ok {
+					ri.Position = pos
+				}
+				items = append(items, ri)
+			}
+		}
+	}
+
+	if len(items) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no items to reorder"})
+		return
+	}
+
+	// FIXED: Validate all task IDs belong to the plan within a transaction
+	err := h.repo.db.Transaction(func(tx *gorm.DB) error {
+		for _, item := range items {
+			var taskPlanID string
+			if err := tx.Model(&core.Task{}).Select("plan_id").Where("id = ?", item.ID).Scan(&taskPlanID).Error; err != nil {
+				return fmt.Errorf("task %s not found: %v", item.ID, err)
+			}
+			if taskPlanID != planID {
+				return fmt.Errorf("task %s does not belong to plan %s", item.ID, planID)
+			}
+		}
+		// All validated; now update positions
+		for _, item := range items {
+			if err := tx.Model(&core.Task{}).Where("id = ?", item.ID).Updates(map[string]interface{}{
+				"bucket_id": item.BucketID,
+				"position":  item.Position,
+			}).Error; err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "reordered"})
 }

@@ -44,13 +44,16 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
   };
 
   const handleToggle = async (id: string) => {
+    // FIXED: calculate new completed state for toggle API
+    const currentItem = items.find((i) => i.id === id);
+    const newCompleted = !currentItem?.completed;
     setItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, completed: !item.completed } : item,
+        item.id === id ? { ...item, completed: newCompleted } : item,
       ),
     );
     try {
-      await api.checklists.toggle(id);
+      await api.checklists.toggle(id, newCompleted);
     } catch (e) {
       /* revert on error - we don't have previous state easily, just refetch */
       setItems((prev) =>
