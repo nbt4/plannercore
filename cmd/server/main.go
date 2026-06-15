@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"plannercore/internal/analytics"
@@ -20,6 +23,7 @@ import (
 	"plannercore/internal/timeline"
 	"plannercore/internal/websocket"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -29,11 +33,17 @@ import (
 )
 
 func main() {
+	// Structured JSON logger
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+
+	// FIXED: default DB credentials changed from "rentalcore" to "plannercore"
 	dbHost := envOrDefault("DB_HOST", "localhost")
 	dbPort := envOrDefault("DB_PORT", "5432")
-	dbName := envOrDefault("DB_NAME", "rentalcore")
-	dbUser := envOrDefault("DB_USER", "rentalcore")
-	dbPass := envOrDefault("DB_PASS", "rentalcore")
+	dbName := envOrDefault("DB_NAME", "plannercore")
+	dbUser := envOrDefault("DB_USER", "plannercore")
+	dbPass := envOrDefault("DB_PASS", "plannercore")
 
 	dsn := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser +
 		" password=" + dbPass + " dbname=" + dbName + " sslmode=disable"
@@ -41,7 +51,15 @@ func main() {
 		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		slog.Error("Failed to connect to database", "error", err)
+		os.Exit(1)
+	}
+
+	// Get underlying *sql.DB for health checks
+	sqlDB, err := db.DB()
+	if err != nil {
+		slog.Error("Failed to get underlying sql.DB", "error", err)
+		os.Exit(1)
 	}
 
 	eventBus := core.NewEventBus()
@@ -50,8 +68,36 @@ func main() {
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12"})
 
+	// FIXED: Added proper CORS middleware
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:3003", "http://localhost:3000", "http://localhost:8080"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
+
+	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok", "service": "plannercore"})
+		ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+		defer cancel()
+
+		if err := sqlDB.PingContext(ctx); err != nil {
+			slog.Error("Health check failed: db unreachable", "error", err)
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status":  "error",
+				"service": "plannercore",
+				"error":   "db unreachable",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status":  "ok",
+			"service": "plannercore",
+			"version": "2.1.0",
+		})
 	})
 
 	// Login/Logout (same logic as cores-dashboard)
@@ -86,7 +132,8 @@ func main() {
 			},
 		}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		// FIXED: Use HS512 instead of HS256 for stronger security
+		token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 		signed, err := token.SignedString([]byte(auth.JWTSecret()))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Token error"})
@@ -137,11 +184,12 @@ func main() {
 	boardHandler := boards.NewHandler(boardService, sessionValidator)
 	boardHandler.RegisterRoutes(planRoutes)
 
-	// Task handlers (mixed: list/create are plan-scoped, task/:id operations check internally)
+	// FIXED: Task handlers — plan-scoped list/create go to planRoutes for membership check;
+	// task-scoped routes (GET/PUT/DELETE /tasks/:taskId) verify plan membership internally.
 	taskRepo := tasks.NewRepository(db)
 	taskService := tasks.NewService(taskRepo, eventBus)
 	taskHandler := tasks.NewHandler(taskService, taskRepo, sessionValidator)
-	taskHandler.RegisterRoutes(api)
+	taskHandler.RegisterRoutes(api, planRoutes)
 
 	// Label handlers (plan-scoped)
 	labelHandler := labels.NewHandler(db, sessionValidator)
@@ -182,10 +230,38 @@ func main() {
 	})
 
 	port := envOrDefault("PORT", "8080")
-	log.Printf("Plannercore starting on :%s", port)
-	if err := r.Run(":" + port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+
+	// Graceful shutdown with http.Server
+	srv := &http.Server{
+		Addr:    ":" + port,
+		Handler: r,
 	}
+
+	// Start server in a goroutine
+	go func() {
+		slog.Info("Plannercore starting", "port", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("Failed to start server", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Wait for interrupt signal for graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+
+	slog.Info("Shutting down gracefully", "signal", sig.String())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		slog.Error("Server forced to shutdown", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("Server exited cleanly")
 }
 
 func envOrDefault(key, defaultVal string) string {

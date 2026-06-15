@@ -2,9 +2,10 @@ package websocket
 
 import (
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync"
+	"time"
 
 	"plannercore/internal/core"
 
@@ -13,7 +14,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// FIXED: Added heartbeat/ping-pong configuration for cleanup
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 4096
+)
+
 var upgrader = gorilla.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		origin := r.Header.Get("Origin")
 		host := r.Host
@@ -90,7 +101,7 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("WebSocket upgrade error: %v", err)
+		slog.Error("WebSocket upgrade error", "error", err)
 		return
 	}
 
@@ -106,47 +117,99 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 	// Subscribe to EventBus for this plan
 	eventCh := h.eventBus.Subscribe(planID)
 
-	go client.writePump()
-	go client.readPump()
+	// FIXED: goroutine lifecycle managed via done channel — ensures cleanup
+	// when writePump or readPump exits (heartbeat-based detection)
+	done := make(chan struct{})
+
+	go client.writePump(done)
+	go client.readPump(done)
 
 	// Relay events from EventBus to WebSocket
 	go func() {
-		for event := range eventCh {
-			data, err := json.Marshal(event)
-			if err != nil {
-				continue
-			}
+		defer func() {
+			h.eventBus.Unsubscribe(planID, eventCh)
+		}()
+		for {
 			select {
-			case client.send <- data:
-			default:
-				// drop if buffer full
+			case event, ok := <-eventCh:
+				if !ok {
+					return
+				}
+				data, err := json.Marshal(event)
+				if err != nil {
+					continue
+				}
+				select {
+				case client.send <- data:
+				default:
+					// drop if buffer full
+				}
+			case <-done:
+				return
 			}
 		}
 	}()
 
-	// Cleanup on disconnect
+	// FIXED: cleanup goroutine waits for done signal from readPump/writePump
+	// instead of relying solely on request context (which may not fire)
 	go func() {
-		<-c.Request.Context().Done()
-		h.eventBus.Unsubscribe(planID, eventCh)
+		<-done
 		h.unregister(client)
-		client.conn.Close()
 	}()
 }
 
-func (c *Client) writePump() {
-	defer c.conn.Close()
-	for msg := range c.send {
-		if err := c.conn.WriteMessage(gorilla.TextMessage, msg); err != nil {
-			return
+// FIXED: writePump uses heartbeat-based ping to detect dead connections.
+// Exits and signals done when connection is lost, triggering cleanup.
+func (c *Client) writePump(done chan struct{}) {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.conn.Close()
+		close(done) // signal cleanup
+	}()
+
+	for {
+		select {
+		case msg, ok := <-c.send:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				// send channel closed
+				c.conn.WriteMessage(gorilla.CloseMessage, []byte{})
+				return
+			}
+			if err := c.conn.WriteMessage(gorilla.TextMessage, msg); err != nil {
+				return
+			}
+		case <-ticker.C:
+			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.WriteMessage(gorilla.PingMessage, nil); err != nil {
+				return
+			}
 		}
 	}
 }
 
-func (c *Client) readPump() {
-	defer c.conn.Close()
+// FIXED: readPump uses pong handler to detect dead connections.
+// Exits and signals done when connection is lost, triggering cleanup.
+func (c *Client) readPump(done chan struct{}) {
+	defer func() {
+		c.conn.Close()
+		close(done) // signal cleanup
+	}()
+
+	c.conn.SetReadLimit(maxMessageSize)
+	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	for {
 		_, _, err := c.conn.ReadMessage()
 		if err != nil {
+			if gorilla.IsUnexpectedCloseError(err, gorilla.CloseGoingAway, gorilla.CloseAbnormalClosure) {
+				slog.Error("WebSocket error", "error", err)
+			}
 			break
 		}
 	}
