@@ -19,6 +19,7 @@ import (
 	"plannercore/internal/goals"
 	"plannercore/internal/integration"
 	"plannercore/internal/labels"
+	"plannercore/internal/metrics"
 	"plannercore/internal/plans"
 	"plannercore/internal/sprints"
 	"plannercore/internal/tasks"
@@ -26,6 +27,7 @@ import (
 	"plannercore/internal/websocket"
 
 	"github.com/gin-contrib/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -63,6 +65,7 @@ func main() {
 		slog.Error("Failed to get underlying sql.DB", "error", err)
 		os.Exit(1)
 	}
+	metrics.DBConnectionsOpen.Set(float64(sqlDB.Stats().OpenConnections))
 
 	eventBus := core.NewEventBus()
 	sessionValidator := auth.NewSessionValidator(db)
@@ -80,8 +83,12 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Prometheus metrics middleware
+	r.Use(metrics.Middleware())
+
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
 	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.1.0")))
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Login/Logout (same logic as cores-dashboard)
 	r.POST("/api/v1/auth/login", func(c *gin.Context) {
