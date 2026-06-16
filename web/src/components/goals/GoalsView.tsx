@@ -77,7 +77,7 @@ export default function GoalsView() {
 
   const handleEdit = async (id: string) => {
     const title = editValue.trim();
-    if (!title) {
+    if (!planId || !title) {
       setEditingId(null);
       return;
     }
@@ -91,6 +91,7 @@ export default function GoalsView() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!planId) return;
     if (!window.confirm('Ziel wirklich löschen?')) return;
     try {
       await api.goals.delete(planId, id);
