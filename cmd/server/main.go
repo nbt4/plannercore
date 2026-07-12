@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -48,6 +49,10 @@ func main() {
 	dbName := envOrDefault("DB_NAME", "plannercore")
 	dbUser := envOrDefault("DB_USER", "plannercore")
 	dbPass := envOrDefault("DB_PASS", "plannercore")
+	dashboardURL := os.Getenv("DASHBOARD_URL")
+	if dashboardURL == "" {
+		dashboardURL = "/"
+	}
 
 	dsn := "host=" + dbHost + " port=" + dbPort + " user=" + dbUser +
 		" password=" + dbPass + " dbname=" + dbName + " sslmode=disable"
@@ -213,10 +218,23 @@ func main() {
 	// Serve static assets (both /assets and /planner/assets for cached clients)
 	r.Static("/assets", "./web/dist/assets")
 	r.Static("/planner/assets", "./web/dist/assets")
+	r.Static("/logos", "./web/dist/logos")
 
 	// SPA fallback for /planner/* (cached clients with old base path)
+	// Inject DASHBOARD_URL into the served HTML so the React app can read it
+	indexHTML, err := os.ReadFile("web/dist/index.html")
+	if err != nil {
+		slog.Error("failed to read index.html", "error", err)
+	} else {
+		scriptTag := fmt.Sprintf("<script>window.__DASHBOARD_URL__=%q</script>", dashboardURL)
+		indexHTML = []byte(strings.Replace(string(indexHTML), "</head>", scriptTag+"</head>", 1))
+	}
 	r.NoRoute(func(c *gin.Context) {
-		c.File("web/dist/index.html")
+		if indexHTML != nil {
+			c.Data(http.StatusOK, "text/html; charset=utf-8", indexHTML)
+		} else {
+			c.File("web/dist/index.html")
+		}
 	})
 
 	port := envOrDefault("PORT", "8080")
