@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS planner_plans (
     background_color TEXT DEFAULT '#1e293b',
     is_favorite BOOLEAN DEFAULT FALSE,
     is_template BOOLEAN DEFAULT FALSE,
-    created_by UUID REFERENCES users(id),
+    created_by TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     archived_at TIMESTAMPTZ
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS planner_plans (
 
 CREATE TABLE IF NOT EXISTS planner_members (
     plan_id UUID REFERENCES planner_plans(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
+    user_id TEXT,
     role TEXT DEFAULT 'member',
     PRIMARY KEY (plan_id, user_id)
 );
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS planner_tasks (
     position DOUBLE PRECISION NOT NULL DEFAULT 0,
     checklist_completed_count INT DEFAULT 0,
     checklist_total_count INT DEFAULT 0,
-    created_by UUID REFERENCES users(id),
+    created_by TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS planner_checklist_items (
     title TEXT NOT NULL,
     is_completed BOOLEAN DEFAULT FALSE,
     position INT DEFAULT 0,
-    completed_by UUID REFERENCES users(id),
+    completed_by TEXT,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -74,14 +74,14 @@ CREATE TABLE IF NOT EXISTS planner_task_labels (
 
 CREATE TABLE IF NOT EXISTS planner_task_assignees (
     task_id UUID REFERENCES planner_tasks(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
+    user_id TEXT,
     PRIMARY KEY (task_id, user_id)
 );
 
 CREATE TABLE IF NOT EXISTS planner_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     task_id UUID REFERENCES planner_tasks(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
+    user_id TEXT,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS planner_attachments (
     file_path TEXT NOT NULL,
     file_size BIGINT,
     mime_type TEXT,
-    uploaded_by UUID REFERENCES users(id),
+    uploaded_by TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -161,7 +161,7 @@ CREATE TABLE IF NOT EXISTS planner_baselines (
 CREATE TABLE IF NOT EXISTS planner_task_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     task_id UUID REFERENCES planner_tasks(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id),
+    user_id TEXT,
     field_changed TEXT NOT NULL,
     old_value TEXT,
     new_value TEXT,
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS planner_plan_links (
 );
 
 CREATE TABLE IF NOT EXISTS planner_my_day (
-    user_id UUID REFERENCES users(id),
+    user_id TEXT,
     task_id UUID REFERENCES planner_tasks(id) ON DELETE CASCADE,
     added_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (user_id, task_id)
