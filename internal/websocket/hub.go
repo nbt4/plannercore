@@ -87,8 +87,8 @@ func (h *Hub) HandleWebSocket(c *gin.Context) {
 	}
 
 	// Verify user is a plan member (membership middleware already ran via planRoutes)
-	userID, exists := c.Get("userID")
-	if !exists {
+	userID := c.GetString("userIDStr")
+	if userID == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
 		return
 	}
