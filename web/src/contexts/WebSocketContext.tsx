@@ -26,7 +26,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     function connect() {
       if (closed) return;
       ws = new WebSocket(
-        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/planner/ws?plan=${activePlanId}`,
+        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/planner/ws?planId=${activePlanId}`,
       );
 
       ws.onopen = () => setConnected(true);
