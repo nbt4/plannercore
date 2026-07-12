@@ -35,8 +35,17 @@ func (r *Repository) Update(bucket *core.Bucket) error {
 	return r.db.Save(bucket).Error
 }
 
-func (r *Repository) UpdateName(id, name string) error {
-	return r.db.Model(&core.Bucket{}).Where("id = ?", id).Update("name", name).Error
+// UpdateName renames a bucket, scoped to planID so a member of one plan
+// cannot rename a bucket belonging to a different plan by guessing its ID.
+func (r *Repository) UpdateName(planID, id, name string) error {
+	res := r.db.Model(&core.Bucket{}).Where("id = ? AND plan_id = ?", id, planID).Update("name", name)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 func (r *Repository) ListOrdered(planID string) ([]core.Bucket, error) {
@@ -45,10 +54,26 @@ func (r *Repository) ListOrdered(planID string) ([]core.Bucket, error) {
 	return buckets, err
 }
 
-func (r *Repository) UpdatePosition(id string, position float64) error {
-	return r.db.Model(&core.Bucket{}).Where("id = ?", id).Update("position", position).Error
+// UpdatePosition is scoped to planID for the same reason as UpdateName.
+func (r *Repository) UpdatePosition(planID, id string, position float64) error {
+	res := r.db.Model(&core.Bucket{}).Where("id = ? AND plan_id = ?", id, planID).Update("position", position)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
-func (r *Repository) Delete(id string) error {
-	return r.db.Delete(&core.Bucket{}, "id = ?", id).Error
+// Delete is scoped to planID for the same reason as UpdateName.
+func (r *Repository) Delete(planID, id string) error {
+	res := r.db.Where("plan_id = ?", planID).Delete(&core.Bucket{}, "id = ?", id)
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }

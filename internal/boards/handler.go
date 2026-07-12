@@ -1,11 +1,13 @@
 package boards
 
 import (
+	"errors"
 	"net/http"
 
 	"plannercore/internal/auth"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 type Handler struct {
@@ -59,6 +61,10 @@ func (h *Handler) UpdateBucket(c *gin.Context) {
 		return
 	}
 	if err := h.service.UpdateBucket(c.Param("planId"), c.Param("id"), input.Name); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found in this plan"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -67,6 +73,10 @@ func (h *Handler) UpdateBucket(c *gin.Context) {
 
 func (h *Handler) DeleteBucket(c *gin.Context) {
 	if err := h.service.DeleteBucket(c.Param("planId"), c.Param("id")); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found in this plan"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -82,6 +92,10 @@ func (h *Handler) MoveBucket(c *gin.Context) {
 		return
 	}
 	if err := h.service.MoveBucket(c.Param("planId"), c.Param("id"), input.Direction); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "bucket not found in this plan"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

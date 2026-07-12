@@ -6,6 +6,7 @@ import (
 	"plannercore/internal/core"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -35,7 +36,7 @@ func (s *Service) CreateBucket(planID, name string) (*core.Bucket, error) {
 }
 
 func (s *Service) UpdateBucket(planID, id, name string) error {
-	if err := s.repo.UpdateName(id, name); err != nil {
+	if err := s.repo.UpdateName(planID, id, name); err != nil {
 		return err
 	}
 	s.eventBus.Publish(planID, core.PlanEvent{
@@ -47,7 +48,7 @@ func (s *Service) UpdateBucket(planID, id, name string) error {
 }
 
 func (s *Service) DeleteBucket(planID, id string) error {
-	if err := s.repo.Delete(id); err != nil {
+	if err := s.repo.Delete(planID, id); err != nil {
 		return err
 	}
 	s.eventBus.Publish(planID, core.PlanEvent{
@@ -74,7 +75,7 @@ func (s *Service) MoveBucket(planID, id, direction string) error {
 		}
 	}
 	if idx == -1 {
-		return errors.New("bucket not found in plan")
+		return gorm.ErrRecordNotFound
 	}
 	var swapIdx int
 	switch direction {
@@ -92,10 +93,10 @@ func (s *Service) MoveBucket(planID, id, direction string) error {
 		return errors.New(`direction must be "left" or "right"`)
 	}
 	posA, posB := buckets[idx].Position, buckets[swapIdx].Position
-	if err := s.repo.UpdatePosition(buckets[idx].ID, posB); err != nil {
+	if err := s.repo.UpdatePosition(planID, buckets[idx].ID, posB); err != nil {
 		return err
 	}
-	if err := s.repo.UpdatePosition(buckets[swapIdx].ID, posA); err != nil {
+	if err := s.repo.UpdatePosition(planID, buckets[swapIdx].ID, posA); err != nil {
 		return err
 	}
 	s.eventBus.Publish(planID, core.PlanEvent{
