@@ -13,12 +13,14 @@ import { useTasks } from '../../hooks/useTasks';
 import BucketColumn from './BucketColumn';
 import AddBucketInline from './AddBucketInline';
 import EmptyState from '../shared/EmptyState';
+import TaskDetailPanel from '../tasks/TaskDetailPanel';
 import type { TaskCardData } from './types';
 
 export default function BoardView() {
   const { planId } = useParams<{ planId: string }>();
   const { tasks, setTasks } = useTasks(planId || '');
   const [buckets, setBuckets] = useState<any[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Load buckets
   useEffect(() => {
@@ -224,12 +226,25 @@ export default function BoardView() {
             alignItems: 'flex-start',
           }}
         >
-          {columns.map((col) => (
+          {columns.map((col, idx) => (
             <BucketColumn
               key={col.bucket.id}
               bucket={col.bucket}
               tasks={col.tasks}
               planId={planId}
+              isFirst={idx === 0}
+              isLast={idx === columns.length - 1}
+              onBucketRenamed={(id, name) =>
+                setBuckets((prev) => prev.map((b) => (b.id === id ? { ...b, name } : b)))
+              }
+              onBucketDeleted={(id) => {
+                setBuckets((prev) => prev.filter((b) => b.id !== id));
+                refetchTasks();
+              }}
+              onBucketMoved={() => {
+                api.buckets.list(planId).then(setBuckets).catch(() => {});
+              }}
+              onTaskClick={(taskId) => setSelectedTaskId(taskId)}
             />
           ))}
           <AddBucketInline
@@ -238,6 +253,17 @@ export default function BoardView() {
           />
         </div>
       </DndContext>
+      {selectedTaskId && (
+        <TaskDetailPanel
+          taskId={selectedTaskId}
+          onClose={() => setSelectedTaskId(null)}
+          planId={planId}
+          onTaskDeleted={(taskId) => {
+            setSelectedTaskId(null);
+            setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
+          }}
+        />
+      )}
     </div>
   );
 }

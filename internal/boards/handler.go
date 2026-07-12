@@ -22,6 +22,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/:planId/buckets", h.CreateBucket)
 	rg.PUT("/:planId/buckets/:id", h.UpdateBucket)
 	rg.DELETE("/:planId/buckets/:id", h.DeleteBucket)
+	rg.POST("/:planId/buckets/:id/move", h.MoveBucket)
 }
 
 func (h *Handler) ListBuckets(c *gin.Context) {
@@ -57,7 +58,7 @@ func (h *Handler) UpdateBucket(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	if err := h.service.UpdateBucket(c.Param("id"), input.Name); err != nil {
+	if err := h.service.UpdateBucket(c.Param("planId"), c.Param("id"), input.Name); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -65,9 +66,24 @@ func (h *Handler) UpdateBucket(c *gin.Context) {
 }
 
 func (h *Handler) DeleteBucket(c *gin.Context) {
-	if err := h.service.DeleteBucket(c.Param("id")); err != nil {
+	if err := h.service.DeleteBucket(c.Param("planId"), c.Param("id")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
+}
+
+func (h *Handler) MoveBucket(c *gin.Context) {
+	var input struct {
+		Direction string `json:"direction" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.MoveBucket(c.Param("planId"), c.Param("id"), input.Direction); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "moved"})
 }

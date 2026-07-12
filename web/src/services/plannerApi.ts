@@ -52,6 +52,12 @@ export const api = {
       }),
     delete: (planId: string, id: string) =>
       request<void>(`${BASE}/${planId}/buckets/${id}`, { method: 'DELETE' }),
+    move: (planId: string, id: string, direction: 'left' | 'right') =>
+      request<void>(`${BASE}/${planId}/buckets/${id}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      }),
   },
 
   tasks: {

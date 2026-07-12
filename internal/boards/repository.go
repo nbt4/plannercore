@@ -39,6 +39,16 @@ func (r *Repository) UpdateName(id, name string) error {
 	return r.db.Model(&core.Bucket{}).Where("id = ?", id).Update("name", name).Error
 }
 
+func (r *Repository) ListOrdered(planID string) ([]core.Bucket, error) {
+	var buckets []core.Bucket
+	err := r.db.Where("plan_id = ?", planID).Order("position ASC").Find(&buckets).Error
+	return buckets, err
+}
+
+func (r *Repository) UpdatePosition(id string, position float64) error {
+	return r.db.Model(&core.Bucket{}).Where("id = ?", id).Update("position", position).Error
+}
+
 func (r *Repository) Delete(id string) error {
 	return r.db.Delete(&core.Bucket{}, "id = ?", id).Error
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X, Calendar, Users as UsersIcon, Columns3, Tags } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2 } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { PRIORITY_COLORS, STYLES } from '../../lib/constants';
@@ -16,11 +16,12 @@ interface TaskDetailPanelProps {
   taskId: string | null;
   onClose: () => void;
   planId: string;
+  onTaskDeleted?: (taskId: string) => void;
 }
 
 const priorities = ['urgent', 'important', 'medium', 'low'];
 
-export default function TaskDetailPanel({ taskId, onClose, planId }: TaskDetailPanelProps) {
+export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted }: TaskDetailPanelProps) {
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -28,6 +29,10 @@ export default function TaskDetailPanel({ taskId, onClose, planId }: TaskDetailP
   const [buckets, setBuckets] = useState<any[]>([]);
   const [labels, setLabels] = useState<any[]>([]);
   const [assigneeInput, setAssigneeInput] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const fetchTask = useCallback(async () => {
     if (!taskId) return;
@@ -45,6 +50,23 @@ export default function TaskDetailPanel({ taskId, onClose, planId }: TaskDetailP
   useEffect(() => {
     fetchTask();
   }, [fetchTask]);
+
+  useEffect(() => {
+    setMenuOpen(false);
+    setConfirmingDelete(false);
+    setDeleteError(null);
+  }, [taskId]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [menuOpen]);
 
   // Load buckets and labels
   useEffect(() => {
@@ -123,6 +145,18 @@ export default function TaskDetailPanel({ taskId, onClose, planId }: TaskDetailP
       ? currentLabels.filter((l: any) => l.id !== labelId)
       : [...currentLabels, labels.find((l: any) => l.id === labelId)];
     await handleUpdate({ labels: updated });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!taskId) return;
+    try {
+      await api.tasks.delete(taskId);
+      setDeleteError(null);
+      onTaskDeleted?.(taskId);
+      onClose();
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Löschen fehlgeschlagen');
+    }
   };
 
   if (loading) {
@@ -225,25 +259,145 @@ export default function TaskDetailPanel({ taskId, onClose, planId }: TaskDetailP
           >
             Aufgabendetails
           </span>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 'var(--space-1)',
-              borderRadius: 'var(--radius-sm)',
-              color: 'var(--text-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'color var(--transition-fast)',
-            }}
-            title="Schließen"
-          >
-            <X size={20} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+            <div ref={menuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setMenuOpen((v) => !v)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 'var(--space-1)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="Weitere Optionen"
+              >
+                <MoreHorizontal size={20} />
+              </button>
+              {menuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    right: 0,
+                    marginTop: 'var(--space-1)',
+                    backgroundColor: 'var(--surface-1)',
+                    border: 'var(--border-default)',
+                    borderRadius: 'var(--radius-md)',
+                    boxShadow: 'var(--shadow-dropdown)',
+                    minWidth: 170,
+                    zIndex: 10,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmingDelete(true);
+                      setDeleteError(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 'var(--space-2)',
+                      width: '100%',
+                      padding: 'var(--space-2) var(--space-3)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--color-danger)',
+                      fontSize: 'var(--text-sm)',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <Trash2 size={14} />
+                    <span>Aufgabe löschen</span>
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 'var(--space-1)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color var(--transition-fast)',
+              }}
+              title="Schließen"
+            >
+              <X size={20} />
+            </button>
+          </div>
         </div>
+
+        {confirmingDelete && (
+          <div
+            style={{
+              margin: 'var(--space-3) var(--space-4) 0',
+              padding: 'var(--space-3)',
+              backgroundColor: 'var(--color-error-bg)',
+              border: '1px solid var(--color-error-border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: 'var(--text-sm)',
+              color: 'var(--text-primary)',
+              flexShrink: 0,
+            }}
+          >
+            <div style={{ marginBottom: 'var(--space-2)' }}>
+              Diese Aufgabe endgültig löschen?
+            </div>
+            {deleteError && (
+              <div style={{ marginBottom: 'var(--space-2)', fontSize: 'var(--text-xs)', color: 'var(--color-danger)' }}>
+                {deleteError}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              <button
+                onClick={handleDeleteConfirm}
+                style={{
+                  padding: 'var(--space-1) var(--space-3)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '1px solid var(--color-danger)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-danger)',
+                  fontSize: 'var(--text-xs)',
+                  fontWeight: 'var(--weight-medium)',
+                  cursor: 'pointer',
+                }}
+              >
+                Löschen
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmingDelete(false);
+                  setDeleteError(null);
+                }}
+                style={{
+                  padding: 'var(--space-1) var(--space-3)',
+                  borderRadius: 'var(--radius-sm)',
+                  border: 'var(--border-default)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontSize: 'var(--text-xs)',
+                  cursor: 'pointer',
+                }}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Scrollable content */}
         <div
