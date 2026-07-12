@@ -115,7 +115,23 @@ func (h *Handler) AddSprintTasks(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	planID := c.Param("planId")
 	sprintID := c.Param("id")
+
+	var sprintCount int64
+	h.db.Model(&core.Sprint{}).Where("id = ? AND plan_id = ?", sprintID, planID).Count(&sprintCount)
+	if sprintCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "sprint not found in this plan"})
+		return
+	}
+
+	var validTaskCount int64
+	h.db.Model(&core.Task{}).Where("id IN ? AND plan_id = ?", input.TaskIDs, planID).Count(&validTaskCount)
+	if int(validTaskCount) != len(input.TaskIDs) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "one or more tasks do not belong to this plan"})
+		return
+	}
+
 	for _, taskID := range input.TaskIDs {
 		h.db.Create(&core.SprintTask{SprintID: sprintID, TaskID: taskID})
 	}

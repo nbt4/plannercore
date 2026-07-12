@@ -22,11 +22,19 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	plans := rg.Group("/plans")
 	plans.GET("", h.ListPlans)
 	plans.POST("", h.CreatePlan)
-	plans.GET("/:planId", h.GetPlan)
-	plans.PUT("/:planId", h.UpdatePlan)
-	plans.DELETE("/:planId", h.DeletePlan)
-	plans.POST("/:planId/copy", h.CopyPlan)
-	plans.POST("/:planId/favorite", h.ToggleFavorite)
+
+	// Single-plan routes were previously unprotected here — the group-level
+	// RequirePlanMember used elsewhere in main.go never applied to this
+	// handler's own /plans/:planId routes, so any authenticated user could
+	// read/rename/delete/copy/favorite any plan by ID. Scope them the same
+	// way RequirePlanMember protects every other plan-scoped route.
+	scoped := plans.Group("/:planId")
+	scoped.Use(h.sessionVal.RequirePlanMember("planId"))
+	scoped.GET("", h.GetPlan)
+	scoped.PUT("", h.UpdatePlan)
+	scoped.DELETE("", h.DeletePlan)
+	scoped.POST("/copy", h.CopyPlan)
+	scoped.POST("/favorite", h.ToggleFavorite)
 }
 
 func (h *Handler) ListPlans(c *gin.Context) {

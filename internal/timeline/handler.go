@@ -60,6 +60,15 @@ func (h *Handler) AddDependency(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	planID := c.Param("planId")
+	var taskCount int64
+	h.db.Model(&core.Task{}).
+		Where("id IN ? AND plan_id = ?", []string{input.PredecessorID, input.SuccessorID}, planID).
+		Count(&taskCount)
+	if taskCount != 2 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "both tasks must belong to this plan"})
+		return
+	}
 	if input.DependencyType == "" {
 		input.DependencyType = "finish-to-start"
 	}
@@ -77,8 +86,17 @@ func (h *Handler) AddDependency(c *gin.Context) {
 }
 
 func (h *Handler) DeleteDependency(c *gin.Context) {
-	if err := h.db.Delete(&core.Dependency{}, "id = ?", c.Param("id")).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	planID := c.Param("planId")
+	res := h.db.Where(
+		"id = ? AND (predecessor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?) OR successor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?))",
+		c.Param("id"), planID, planID,
+	).Delete(&core.Dependency{})
+	if res.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": res.Error.Error()})
+		return
+	}
+	if res.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "dependency not found in this plan"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})

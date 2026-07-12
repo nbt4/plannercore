@@ -30,36 +30,45 @@ func (h *Handler) RegisterRoutes(api *gin.RouterGroup, planRoutes *gin.RouterGro
 	planRoutes.POST("/:planId/tasks", h.CreateTask)
 	planRoutes.PUT("/:planId/tasks/reorder", h.ReorderTasks)
 
-	// FIXED: Task-scoped routes — verify plan membership internally
+	// Task-scoped routes — verify plan membership internally, resolved from
+	// the task's plan_id via requirePlanMembershipVia.
+	requireTask := h.requirePlanMembershipVia("task not found", h.planIDForTask)
 	tasks := api.Group("/tasks")
-	tasks.GET("/:taskId", h.requireTaskPlanMembership(), h.GetTask)
-	tasks.PUT("/:taskId", h.requireTaskPlanMembership(), h.UpdateTask)
-	tasks.DELETE("/:taskId", h.requireTaskPlanMembership(), h.DeleteTask)
-	tasks.PATCH("/:taskId/progress", h.requireTaskPlanMembership(), h.UpdateProgress)
-	tasks.POST("/:taskId/checklist", h.requireTaskPlanMembership(), h.AddChecklistItem)
-	tasks.POST("/:taskId/assignees", h.requireTaskPlanMembership(), h.AddAssignee)
-	tasks.DELETE("/:taskId/assignees/:userId", h.requireTaskPlanMembership(), h.RemoveAssignee)
-	tasks.GET("/:taskId/comments", h.requireTaskPlanMembership(), h.ListComments)
-	tasks.POST("/:taskId/comments", h.requireTaskPlanMembership(), h.AddComment)
-	tasks.POST("/:taskId/attachments", h.requireTaskPlanMembership(), h.AddAttachment)
+	tasks.GET("/:taskId", requireTask, h.GetTask)
+	tasks.PUT("/:taskId", requireTask, h.UpdateTask)
+	tasks.DELETE("/:taskId", requireTask, h.DeleteTask)
+	tasks.PATCH("/:taskId/progress", requireTask, h.UpdateProgress)
+	tasks.POST("/:taskId/checklist", requireTask, h.AddChecklistItem)
+	tasks.POST("/:taskId/assignees", requireTask, h.AddAssignee)
+	tasks.DELETE("/:taskId/assignees/:userId", requireTask, h.RemoveAssignee)
+	tasks.GET("/:taskId/comments", requireTask, h.ListComments)
+	tasks.POST("/:taskId/comments", requireTask, h.AddComment)
+	tasks.POST("/:taskId/attachments", requireTask, h.AddAttachment)
 
-	// Checklist-scoped routes (plan membership verified via task lookup in handler)
-	api.PATCH("/checklist/:id", h.UpdateChecklistItem)
-	api.DELETE("/checklist/:id", h.DeleteChecklistItem)
+	// Checklist-scoped routes: plan membership resolved via checklist item -> task -> plan.
+	requireChecklistItem := h.requirePlanMembershipVia("checklist item not found", h.planIDForChecklistItem)
+	api.PATCH("/checklist/:id", requireChecklistItem, h.UpdateChecklistItem)
+	api.DELETE("/checklist/:id", requireChecklistItem, h.DeleteChecklistItem)
 
-	// Attachment-scoped routes
-	api.DELETE("/attachments/:id", h.DeleteAttachment)
+	// Attachment-scoped routes: plan membership resolved via attachment -> task -> plan.
+	api.DELETE("/attachments/:id", h.requirePlanMembershipVia("attachment not found", h.planIDForAttachment), h.DeleteAttachment)
 
-	// My Tasks / My Day routes
+	// My Tasks / My Day routes. AddToMyDay pulls an arbitrary task into the
+	// caller's own "my day" list, so it's gated the same way — otherwise a
+	// non-member could add any task ID to their list and read its full
+	// contents back via GetMyDay.
 	api.GET("/my/tasks", h.GetMyTasks)
 	api.GET("/my/day", h.GetMyDay)
-	api.POST("/my/day/:taskId", h.AddToMyDay)
+	api.POST("/my/day/:taskId", requireTask, h.AddToMyDay)
 	api.DELETE("/my/day/:taskId", h.RemoveFromMyDay)
 }
 
-// FIXED: requireTaskPlanMembership middleware verifies the authenticated user
-// is a member of the plan that the task belongs to.
-func (h *Handler) requireTaskPlanMembership() gin.HandlerFunc {
+// requirePlanMembershipVia builds middleware that resolves a plan ID from
+// the request via resolve, then verifies the authenticated user is a member
+// of that plan. Used for routes keyed by an entity other than planId itself
+// (a task, checklist item, or attachment) where the group-level
+// RequirePlanMember middleware doesn't apply.
+func (h *Handler) requirePlanMembershipVia(notFoundMsg string, resolve func(c *gin.Context) (string, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, ok := h.sessionVal.GetCurrentUser(c)
 		if !ok {
@@ -67,28 +76,54 @@ func (h *Handler) requireTaskPlanMembership() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		taskID := c.Param("taskId")
-		if taskID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "task ID required"})
-			c.Abort()
-			return
-		}
-		var task core.Task
-		if err := h.repo.db.Select("plan_id").First(&task, "id = ?", taskID).Error; err != nil {
-			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+		planID, err := resolve(c)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": notFoundMsg})
 			c.Abort()
 			return
 		}
 		var count int64
-		h.repo.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", task.PlanID, fmt.Sprintf("%d", user.UserID)).Count(&count)
+		h.repo.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", planID, fmt.Sprintf("%d", user.UserID)).Count(&count)
 		if count == 0 {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied — not a plan member"})
 			c.Abort()
 			return
 		}
-		c.Set("taskPlanID", task.PlanID)
+		c.Set("taskPlanID", planID)
 		c.Next()
 	}
+}
+
+func (h *Handler) planIDForTask(c *gin.Context) (string, error) {
+	var task core.Task
+	if err := h.repo.db.Select("plan_id").First(&task, "id = ?", c.Param("taskId")).Error; err != nil {
+		return "", err
+	}
+	return task.PlanID, nil
+}
+
+func (h *Handler) planIDForChecklistItem(c *gin.Context) (string, error) {
+	var item core.ChecklistItem
+	if err := h.repo.db.Select("task_id").First(&item, "id = ?", c.Param("id")).Error; err != nil {
+		return "", err
+	}
+	var task core.Task
+	if err := h.repo.db.Select("plan_id").First(&task, "id = ?", item.TaskID).Error; err != nil {
+		return "", err
+	}
+	return task.PlanID, nil
+}
+
+func (h *Handler) planIDForAttachment(c *gin.Context) (string, error) {
+	var attachment core.Attachment
+	if err := h.repo.db.Select("task_id").First(&attachment, "id = ?", c.Param("id")).Error; err != nil {
+		return "", err
+	}
+	var task core.Task
+	if err := h.repo.db.Select("plan_id").First(&task, "id = ?", attachment.TaskID).Error; err != nil {
+		return "", err
+	}
+	return task.PlanID, nil
 }
 
 func (h *Handler) ListTasks(c *gin.Context) {
