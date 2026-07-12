@@ -17,6 +17,9 @@ type Plan struct {
 	CreatedAt       time.Time `json:"createdAt" gorm:"column:created_at;default:now()"`
 	UpdatedAt       time.Time `json:"updatedAt" gorm:"column:updated_at;default:now()"`
 	ArchivedAt      *time.Time `json:"archivedAt" gorm:"column:archived_at"`
+	Buckets         []Bucket   `json:"buckets,omitempty" gorm:"foreignKey:PlanID"`
+	Labels          []Label    `json:"labels,omitempty" gorm:"foreignKey:PlanID"`
+	Members         []Member   `json:"members,omitempty" gorm:"foreignKey:PlanID"`
 }
 
 func (Plan) TableName() string {
