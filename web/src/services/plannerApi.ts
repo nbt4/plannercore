@@ -37,21 +37,21 @@ export const api = {
   },
 
   buckets: {
-    list: (planId: string) => request<any[]>(`${BASE}/plans/${planId}/buckets`),
+    list: (planId: string) => request<any[]>(`${BASE}/${planId}/buckets`),
     create: (planId: string, name: string) =>
-      request<any>(`${BASE}/plans/${planId}/buckets`, {
+      request<any>(`${BASE}/${planId}/buckets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       }),
     update: (planId: string, id: string, name: string) =>
-      request<any>(`${BASE}/plans/${planId}/buckets/${id}`, {
+      request<any>(`${BASE}/${planId}/buckets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       }),
     delete: (planId: string, id: string) =>
-      request<void>(`${BASE}/plans/${planId}/buckets/${id}`, { method: 'DELETE' }),
+      request<void>(`${BASE}/${planId}/buckets/${id}`, { method: 'DELETE' }),
   },
 
   tasks: {
@@ -61,11 +61,11 @@ export const api = {
       if (filters?.label) params.set('labelId', filters.label);
       if (filters?.assignee) params.set('assigneeId', filters.assignee);
       const qs = params.toString();
-      return request<any[]>(`${BASE}/plans/${planId}/tasks${qs ? `?${qs}` : ''}`);
+      return request<any[]>(`${BASE}/${planId}/tasks${qs ? `?${qs}` : ''}`);
     },
     get: (taskId: string) => request<any>(`${BASE}/tasks/${taskId}`),
     create: (planId: string, title: string, bucketId?: string) =>
-      request<any>(`${BASE}/plans/${planId}/tasks`, {
+      request<any>(`${BASE}/${planId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, bucketId }),
@@ -80,7 +80,7 @@ export const api = {
       request<void>(`${BASE}/tasks/${taskId}`, { method: 'DELETE' }),
     // FIXED: reorder uses plan-scoped PUT with flat array (matching backend)
     reorder: (planId: string, items: any[]) =>
-      request<void>(`${BASE}/plans/${planId}/tasks/reorder`, {
+      request<void>(`${BASE}/${planId}/tasks/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(items),
@@ -136,15 +136,15 @@ export const api = {
 
   // FIXED: Labels use plan-scoped paths for all operations
   labels: {
-    list: (planId: string) => request<any[]>(`${BASE}/plans/${planId}/labels`),
+    list: (planId: string) => request<any[]>(`${BASE}/${planId}/labels`),
     create: (planId: string, name: string, color: string) =>
-      request<any>(`${BASE}/plans/${planId}/labels`, {
+      request<any>(`${BASE}/${planId}/labels`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, color }),
       }),
     delete: (planId: string, id: string) =>
-      request<void>(`${BASE}/plans/${planId}/labels/${id}`, { method: 'DELETE' }),
+      request<void>(`${BASE}/${planId}/labels/${id}`, { method: 'DELETE' }),
   },
 
   my: {
@@ -158,36 +158,36 @@ export const api = {
 
   // FIXED: Timeline uses plan-scoped routes matching backend
   timeline: {
-    get: (planId: string) => request<any>(`${BASE}/plans/${planId}/timeline`),
+    get: (planId: string) => request<any>(`${BASE}/${planId}/timeline`),
     addDependency: (planId: string, predecessorId: string, successorId: string, type?: string) =>
-      request<any>(`${BASE}/plans/${planId}/dependencies`, {
+      request<any>(`${BASE}/${planId}/dependencies`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ predecessorId, successorId, dependencyType: type || 'finish-to-start' }),
       }),
     delete: (planId: string, id: string) =>
-      request<void>(`${BASE}/plans/${planId}/dependencies/${id}`, { method: 'DELETE' }),
+      request<void>(`${BASE}/${planId}/dependencies/${id}`, { method: 'DELETE' }),
   },
 
   // FIXED: Sprints use plan-scoped paths for update/delete
   sprints: {
-    list: (planId: string) => request<any[]>(`${BASE}/plans/${planId}/sprints`),
+    list: (planId: string) => request<any[]>(`${BASE}/${planId}/sprints`),
     create: (planId: string, data: any) =>
-      request<any>(`${BASE}/plans/${planId}/sprints`, {
+      request<any>(`${BASE}/${planId}/sprints`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
     update: (planId: string, id: string, data: any) =>
-      request<any>(`${BASE}/plans/${planId}/sprints/${id}`, {
+      request<any>(`${BASE}/${planId}/sprints/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
     delete: (planId: string, id: string) =>
-      request<void>(`${BASE}/plans/${planId}/sprints/${id}`, { method: 'DELETE' }),
+      request<void>(`${BASE}/${planId}/sprints/${id}`, { method: 'DELETE' }),
     addTasks: (planId: string, sprintId: string, taskIds: string[]) =>
-      request<any>(`${BASE}/plans/${planId}/sprints/${sprintId}/tasks`, {
+      request<any>(`${BASE}/${planId}/sprints/${sprintId}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ taskIds }),
@@ -196,27 +196,27 @@ export const api = {
 
   // FIXED: Goals use plan-scoped paths for update/delete
   goals: {
-    list: (planId: string) => request<any>(`${BASE}/plans/${planId}/goals`),
+    list: (planId: string) => request<any>(`${BASE}/${planId}/goals`),
     create: (planId: string, data: any) =>
-      request<any>(`${BASE}/plans/${planId}/goals`, {
+      request<any>(`${BASE}/${planId}/goals`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
     update: (planId: string, id: string, data: any) =>
-      request<any>(`${BASE}/plans/${planId}/goals/${id}`, {
+      request<any>(`${BASE}/${planId}/goals/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
     delete: (planId: string, id: string) =>
-      request<void>(`${BASE}/plans/${planId}/goals/${id}`, { method: 'DELETE' }),
+      request<void>(`${BASE}/${planId}/goals/${id}`, { method: 'DELETE' }),
   },
 
   // FIXED: Analytics use correct backend endpoint names
   analytics: {
-    taskChart: (planId: string) => request<any>(`${BASE}/plans/${planId}/analytics/tasks`),
-    workload: (planId: string) => request<any>(`${BASE}/plans/${planId}/analytics/workload`),
-    burndown: (planId: string) => request<any>(`${BASE}/plans/${planId}/analytics/burndown`),
+    taskChart: (planId: string) => request<any>(`${BASE}/${planId}/analytics/tasks`),
+    workload: (planId: string) => request<any>(`${BASE}/${planId}/analytics/workload`),
+    burndown: (planId: string) => request<any>(`${BASE}/${planId}/analytics/burndown`),
   },
 };
