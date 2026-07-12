@@ -11,6 +11,7 @@ import {
 import { api } from '../../services/plannerApi';
 import { useTasks } from '../../hooks/useTasks';
 import BucketColumn from './BucketColumn';
+import AddBucketInline from './AddBucketInline';
 import EmptyState from '../shared/EmptyState';
 import type { TaskCardData } from './types';
 
@@ -206,16 +207,6 @@ export default function BoardView() {
     );
   }
 
-  if (columns.length === 0) {
-    return (
-      <EmptyState
-        icon={Kanban}
-        title="Keine Spalten"
-        description="Dieser Plan hat noch keine Spalten. Fügen Sie Spalten hinzu, um Aufgaben zu organisieren."
-      />
-    );
-  }
-
   return (
     <div
       style={{
@@ -241,6 +232,10 @@ export default function BoardView() {
               planId={planId}
             />
           ))}
+          <AddBucketInline
+            planId={planId}
+            onBucketAdded={(bucket) => setBuckets((prev) => [...prev, bucket])}
+          />
         </div>
       </DndContext>
     </div>
