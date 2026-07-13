@@ -75,6 +75,33 @@ type Task struct {
 	Labels                 []TaskLabel      `json:"labels" gorm:"foreignKey:TaskID"`
 	Comments               []Comment        `json:"comments" gorm:"foreignKey:TaskID"`
 	Attachments            []Attachment     `json:"attachments" gorm:"foreignKey:TaskID"`
+
+	// Status and IsLate are computed, not stored — derived from
+	// StartDate/CompletedAt/DueDate by ComputedStatus/ComputeIsLate and
+	// populated by the tasks service before a Task is returned to a client.
+	Status                 string           `json:"status" gorm:"-"`
+	IsLate                 bool             `json:"isLate" gorm:"-"`
+}
+
+// ComputedStatus derives a three-state status (matching Microsoft Planner's
+// Not started / In progress / Completed) from fields that are already
+// persisted: CompletedAt marks a task done, StartDate marks it as begun.
+// There is no separate stored status column.
+func (t *Task) ComputedStatus() string {
+	if t.CompletedAt != nil {
+		return "completed"
+	}
+	if t.StartDate != nil {
+		return "in-progress"
+	}
+	return "not-started"
+}
+
+// ComputeIsLate reports whether a task is overdue: not completed and past
+// its due date. Orthogonal to ComputedStatus — a task can be in-progress
+// and late at the same time.
+func (t *Task) ComputeIsLate() bool {
+	return t.CompletedAt == nil && t.DueDate != nil && t.DueDate.Before(time.Now())
 }
 
 func (Task) TableName() string {

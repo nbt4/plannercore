@@ -18,12 +18,41 @@ func NewService(repo *Repository, eventBus *core.EventBus) *Service {
 	return &Service{repo: repo, eventBus: eventBus}
 }
 
+// annotate populates a task's computed Status/IsLate fields before it's
+// returned to a caller. Every service method that returns Task(s) must
+// route through this (or annotateAll) — the fields are gorm:"-" so they're
+// otherwise left zero-valued straight out of the repository.
+func annotate(task *core.Task) *core.Task {
+	if task == nil {
+		return task
+	}
+	task.Status = task.ComputedStatus()
+	task.IsLate = task.ComputeIsLate()
+	return task
+}
+
+func annotateAll(tasks []core.Task) []core.Task {
+	for i := range tasks {
+		tasks[i].Status = tasks[i].ComputedStatus()
+		tasks[i].IsLate = tasks[i].ComputeIsLate()
+	}
+	return tasks
+}
+
 func (s *Service) ListTasks(planID, bucketID, labelID, assigneeID string) ([]core.Task, error) {
-	return s.repo.FindByPlanID(planID, bucketID, labelID, assigneeID)
+	tasks, err := s.repo.FindByPlanID(planID, bucketID, labelID, assigneeID)
+	if err != nil {
+		return nil, err
+	}
+	return annotateAll(tasks), nil
 }
 
 func (s *Service) GetTask(id string) (*core.Task, error) {
-	return s.repo.FindByID(id)
+	task, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return annotate(task), nil
 }
 
 func (s *Service) CreateTask(planID string, bucketID *string, title string, userID string) (*core.Task, error) {
@@ -37,6 +66,7 @@ func (s *Service) CreateTask(planID string, bucketID *string, title string, user
 	if err := s.repo.Create(task); err != nil {
 		return nil, err
 	}
+	annotate(task)
 	s.eventBus.Publish(planID, core.PlanEvent{
 		Type:    core.EventTaskCreated,
 		PlanID:  planID,
@@ -71,9 +101,30 @@ func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID s
 		t, _ := time.Parse(time.RFC3339, v)
 		task.StartDate = &t
 	}
+	// status is a write-only convenience over CompletedAt/StartDate — see
+	// Task.ComputedStatus. "completed" stamps CompletedAt; the other two
+	// states just make sure CompletedAt is cleared, and "in-progress" also
+	// backfills StartDate so ComputedStatus reports it correctly afterwards.
+	if v, ok := updates["status"].(string); ok {
+		switch v {
+		case "completed":
+			now := time.Now()
+			task.CompletedAt = &now
+		case "in-progress":
+			task.CompletedAt = nil
+			if task.StartDate == nil {
+				now := time.Now()
+				task.StartDate = &now
+			}
+		case "not-started":
+			task.CompletedAt = nil
+			task.StartDate = nil
+		}
+	}
 	if err := s.repo.Update(task); err != nil {
 		return nil, err
 	}
+	annotate(task)
 	s.eventBus.Publish(task.PlanID, core.PlanEvent{
 		Type:    core.EventTaskUpdated,
 		PlanID:  task.PlanID,
@@ -105,6 +156,7 @@ func (s *Service) recomputeProgress(taskID string) error {
 	if err := s.repo.Update(task); err != nil {
 		return err
 	}
+	annotate(task)
 	s.eventBus.Publish(task.PlanID, core.PlanEvent{
 		Type:    core.EventTaskUpdated,
 		PlanID:  task.PlanID,
@@ -131,11 +183,19 @@ func (s *Service) DeleteTask(id, userID string) error {
 }
 
 func (s *Service) GetMyTasks(userID string) ([]core.Task, error) {
-	return s.repo.FindByAssignee(userID)
+	tasks, err := s.repo.FindByAssignee(userID)
+	if err != nil {
+		return nil, err
+	}
+	return annotateAll(tasks), nil
 }
 
 func (s *Service) GetMyDay(userID string) ([]core.Task, error) {
-	return s.repo.FindMyDay(userID)
+	tasks, err := s.repo.FindMyDay(userID)
+	if err != nil {
+		return nil, err
+	}
+	return annotateAll(tasks), nil
 }
 
 func (s *Service) AddToMyDay(userID, taskID string) error {

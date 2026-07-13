@@ -3,6 +3,8 @@ export interface TaskCardData {
   title: string;
   priority?: string;
   progress?: number;
+  status?: string;
+  isLate?: boolean;
   dueDate?: string;
   bucketId?: string;
   position?: number;

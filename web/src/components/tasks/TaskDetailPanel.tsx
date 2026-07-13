@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2 } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 import { useAuth } from '../../contexts/AuthContext';
-import { PRIORITY_COLORS, STYLES } from '../../lib/constants';
+import { PRIORITY_COLORS, STATUS_COLORS, STATUS_LABELS, STYLES } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
 import ProgressBar from '../shared/ProgressBar';
@@ -21,6 +21,7 @@ interface TaskDetailPanelProps {
 }
 
 const priorities = ['urgent', 'important', 'medium', 'low'];
+const statuses = ['not-started', 'in-progress', 'completed'];
 
 export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted, onTaskUpdated }: TaskDetailPanelProps) {
   const [task, setTask] = useState<any>(null);
@@ -127,6 +128,10 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
 
   const handlePriorityChange = async (priority: string) => {
     await handleUpdate({ priority });
+  };
+
+  const handleStatusChange = async (status: string) => {
+    await handleUpdate({ status });
   };
 
   const handleBucketChange = async (bucketId: string) => {
@@ -521,6 +526,66 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
               }}
             >
               Ergibt sich automatisch aus der Checkliste unten.
+            </div>
+          </div>
+
+          {/* Status selector */}
+          <div style={{ marginBottom: 'var(--space-4)' }}>
+            <span
+              style={{
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-secondary)',
+                fontWeight: 'var(--weight-medium)',
+                display: 'block',
+                marginBottom: 'var(--space-1)',
+              }}
+            >
+              Status
+            </span>
+            <div style={{ display: 'flex', gap: 'var(--space-1)', flexWrap: 'wrap' }}>
+              {statuses.map((s) => {
+                const color = STATUS_COLORS[s];
+                const isActive = task.status === s;
+                return (
+                  <button
+                    key={s}
+                    onClick={() => handleStatusChange(s)}
+                    style={{
+                      padding: 'var(--space-1) var(--space-3)',
+                      borderRadius: 'var(--radius-full)',
+                      border: isActive
+                        ? `2px solid ${color}`
+                        : '2px solid var(--border-subtle)',
+                      backgroundColor: isActive
+                        ? `color-mix(in srgb, ${color} 15%, transparent)`
+                        : 'transparent',
+                      color: isActive ? color : 'var(--text-secondary)',
+                      fontSize: 'var(--text-xs)',
+                      fontWeight: 'var(--weight-medium)',
+                      cursor: 'pointer',
+                      transition: 'all var(--transition-fast)',
+                    }}
+                  >
+                    {STATUS_LABELS[s]}
+                  </button>
+                );
+              })}
+              {task.isLate && (
+                <span
+                  style={{
+                    padding: 'var(--space-1) var(--space-3)',
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: 'var(--text-xs)',
+                    fontWeight: 'var(--weight-medium)',
+                    color: 'var(--color-danger)',
+                    backgroundColor: 'var(--color-error-bg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  Überfällig
+                </span>
+              )}
             </div>
           </div>
 

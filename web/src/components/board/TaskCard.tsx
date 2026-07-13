@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Calendar } from 'lucide-react';
-import { STYLES } from '../../lib/constants';
+import { STATUS_COLORS, STATUS_LABELS, STYLES } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
 import ProgressBar from '../shared/ProgressBar';
@@ -40,8 +40,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     style.zIndex = 999;
   }
 
-  const isOverdue =
-    task.dueDate && new Date(task.dueDate) < new Date() && (task.progress ?? 0) < 100;
+  const isOverdue = task.isLate ?? false;
 
   return (
     <div
@@ -63,19 +62,40 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
       {/* Title */}
       <div
         style={{
-          fontSize: 'var(--text-sm)',
-          fontWeight: 'var(--weight-medium)',
-          color: 'var(--text-primary)',
-          lineHeight: 'var(--leading-snug)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 'var(--space-2)',
           marginBottom: 'var(--space-2)',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
         }}
       >
-        {task.title}
+        {task.status && (
+          <span
+            title={STATUS_LABELS[task.status] || task.status}
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: STATUS_COLORS[task.status] || 'var(--text-muted)',
+              flexShrink: 0,
+              marginTop: 5,
+            }}
+          />
+        )}
+        <div
+          style={{
+            fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-medium)',
+            color: 'var(--text-primary)',
+            lineHeight: 'var(--leading-snug)',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+          }}
+        >
+          {task.title}
+        </div>
       </div>
 
       {/* Priority */}

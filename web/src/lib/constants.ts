@@ -5,6 +5,18 @@ export const PRIORITY_COLORS: Record<string, string> = {
   low: 'var(--planner-priority-low)',
 };
 
+export const STATUS_COLORS: Record<string, string> = {
+  'not-started': 'var(--text-muted)',
+  'in-progress': 'var(--color-info)',
+  completed: 'var(--color-success)',
+};
+
+export const STATUS_LABELS: Record<string, string> = {
+  'not-started': 'Nicht begonnen',
+  'in-progress': 'In Bearbeitung',
+  completed: 'Abgeschlossen',
+};
+
 export const LABEL_COLORS = [
   'var(--planner-label-red)', 'var(--planner-label-blue)', 'var(--planner-label-green)',
   'var(--planner-label-yellow)', 'var(--planner-label-purple)', 'var(--planner-label-orange)',
