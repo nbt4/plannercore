@@ -3,7 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { MoreHorizontal, ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react';
 import { STYLES } from '../../lib/constants';
-import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import TaskCard from './TaskCard';
 import AddTaskInline from './AddTaskInline';
 import type { TaskCardData } from './types';
@@ -18,9 +18,6 @@ interface BucketColumnProps {
   isFirst?: boolean;
   isLast?: boolean;
   onTaskClick?: (taskId: string) => void;
-  onBucketRenamed?: (id: string, name: string) => void;
-  onBucketDeleted?: (id: string) => void;
-  onBucketMoved?: () => void;
 }
 
 const menuItemStyle: React.CSSProperties = {
@@ -44,10 +41,8 @@ export default function BucketColumn({
   isFirst,
   isLast,
   onTaskClick,
-  onBucketRenamed,
-  onBucketDeleted,
-  onBucketMoved,
 }: BucketColumnProps) {
+  const { updateBucket, deleteBucket, moveBucket } = usePlanTasks();
   const { setNodeRef, isOver } = useDroppable({ id: bucket.id });
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -93,10 +88,9 @@ export default function BucketColumn({
       return;
     }
     try {
-      await api.buckets.update(planId, bucket.id, trimmed);
+      await updateBucket(bucket.id, trimmed);
       setRenameError(null);
       setRenaming(false);
-      onBucketRenamed?.(bucket.id, trimmed);
     } catch (e) {
       setRenameError(e instanceof Error ? e.message : 'Umbenennen fehlgeschlagen');
     }
@@ -105,9 +99,8 @@ export default function BucketColumn({
   const handleMove = async (direction: 'left' | 'right') => {
     setMenuOpen(false);
     try {
-      await api.buckets.move(planId, bucket.id, direction);
+      await moveBucket(bucket.id, direction);
       setMoveError(null);
-      onBucketMoved?.();
     } catch (e) {
       setMoveError(e instanceof Error ? e.message : 'Verschieben fehlgeschlagen');
     }
@@ -115,8 +108,7 @@ export default function BucketColumn({
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.buckets.delete(planId, bucket.id);
-      onBucketDeleted?.(bucket.id);
+      await deleteBucket(bucket.id);
     } catch (e) {
       setDeleteError(e instanceof Error ? e.message : 'Löschen fehlgeschlagen');
     }

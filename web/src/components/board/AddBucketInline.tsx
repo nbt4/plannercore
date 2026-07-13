@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 
 interface AddBucketInlineProps {
   planId: string;
-  onBucketAdded?: (bucket: any) => void;
 }
 
-export default function AddBucketInline({ planId, onBucketAdded }: AddBucketInlineProps) {
+export default function AddBucketInline({}: AddBucketInlineProps) {
+  const { createBucket } = usePlanTasks();
   const [expanded, setExpanded] = useState(false);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,11 +23,10 @@ export default function AddBucketInline({ planId, onBucketAdded }: AddBucketInli
     const trimmed = name.trim();
     if (!trimmed) return;
     try {
-      const bucket = await api.buckets.create(planId, trimmed);
+      await createBucket(trimmed);
       setName('');
       setError(null);
       setExpanded(false);
-      onBucketAdded?.(bucket);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Spalte konnte nicht erstellt werden');
     }

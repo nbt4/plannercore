@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
-import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 
 interface AddTaskInlineProps {
   planId: string;
   bucketId?: string;
-  onTaskAdded?: () => void;
 }
 
-export default function AddTaskInline({ planId, bucketId, onTaskAdded }: AddTaskInlineProps) {
+export default function AddTaskInline({ bucketId }: AddTaskInlineProps) {
+  const { createTask } = usePlanTasks();
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -23,10 +23,9 @@ export default function AddTaskInline({ planId, bucketId, onTaskAdded }: AddTask
     const trimmed = title.trim();
     if (!trimmed) return;
     try {
-      await api.tasks.create(planId, trimmed, bucketId);
+      await createTask(trimmed, bucketId);
       setTitle('');
       setExpanded(false);
-      onTaskAdded?.();
     } catch (e) {
       /* silently fail */
     }
