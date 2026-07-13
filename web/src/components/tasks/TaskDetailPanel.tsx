@@ -17,11 +17,12 @@ interface TaskDetailPanelProps {
   onClose: () => void;
   planId: string;
   onTaskDeleted?: (taskId: string) => void;
+  onTaskUpdated?: (task: any) => void;
 }
 
 const priorities = ['urgent', 'important', 'medium', 'low'];
 
-export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted }: TaskDetailPanelProps) {
+export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted, onTaskUpdated }: TaskDetailPanelProps) {
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
@@ -29,10 +30,36 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
   const [buckets, setBuckets] = useState<any[]>([]);
   const [labels, setLabels] = useState<any[]>([]);
   const [assigneeInput, setAssigneeInput] = useState('');
+  const [assigneeSuggestions, setAssigneeSuggestions] = useState<{ userId: string; username: string }[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const query = assigneeInput.trim();
+    if (!query) {
+      setAssigneeSuggestions([]);
+      return;
+    }
+    let cancelled = false;
+    const timeout = setTimeout(() => {
+      api.users
+        .search(query)
+        .then((users) => {
+          if (cancelled) return;
+          const assignedIds = new Set((task?.assignees || []).map((a: any) => a.userId));
+          setAssigneeSuggestions(users.filter((u) => !assignedIds.has(u.userId)));
+        })
+        .catch(() => {
+          if (!cancelled) setAssigneeSuggestions([]);
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [assigneeInput, task?.assignees]);
 
   const fetchTask = useCallback(async () => {
     if (!taskId) return;
@@ -41,6 +68,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
       const t = await api.tasks.get(taskId);
       setTask(t);
       setTitleValue(t.title || '');
+      onTaskUpdated?.(t);
     } catch (e) {
       setTask(null);
     }
@@ -97,12 +125,6 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     setEditingTitle(false);
   };
 
-  const handleProgressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseInt(e.target.value, 10);
-    setTask((prev: any) => ({ ...prev, progress: val }));
-    handleUpdate({ progress: val });
-  };
-
   const handlePriorityChange = async (priority: string) => {
     await handleUpdate({ priority });
   };
@@ -115,27 +137,36 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     handleUpdate({ dueDate: e.target.value || null });
   };
 
-  const handleAddAssignee = async () => {
-    const username = assigneeInput.trim();
-    if (!username) return;
-    try {
-      // Add assignee by username - the API takes an array of assignee IDs
-      const currentAssignees = task.assignees || [];
-      if (currentAssignees.some((a: any) => a.username === username || a.userId === username)) {
-        setAssigneeInput('');
-        return;
-      }
-      const updatedAssignees = [...currentAssignees, { userId: username, username }];
-      await handleUpdate({ assignees: updatedAssignees });
+  const handleAddAssignee = async (user: { userId: string; username: string }) => {
+    const currentAssignees = task.assignees || [];
+    if (currentAssignees.some((a: any) => a.userId === user.userId)) {
       setAssigneeInput('');
+      setAssigneeSuggestions([]);
+      return;
+    }
+    try {
+      await api.tasks.addAssignee(taskId!, user.userId);
+      setTask((prev: any) => ({
+        ...prev,
+        assignees: [...currentAssignees, user],
+      }));
+      setAssigneeInput('');
+      setAssigneeSuggestions([]);
     } catch (e) {
       /* silently fail */
     }
   };
 
   const handleRemoveAssignee = async (userId: string) => {
-    const updated = (task.assignees || []).filter((a: any) => a.userId !== userId);
-    await handleUpdate({ assignees: updated });
+    try {
+      await api.tasks.removeAssignee(taskId!, userId);
+      setTask((prev: any) => ({
+        ...prev,
+        assignees: (prev.assignees || []).filter((a: any) => a.userId !== userId),
+      }));
+    } catch (e) {
+      /* silently fail */
+    }
   };
 
   const handleToggleLabel = async (labelId: string) => {
@@ -159,84 +190,86 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     }
   };
 
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    zIndex: 'var(--z-modal-overlay)',
+    backgroundColor: 'var(--overlay-dark)',
+    backdropFilter: 'var(--backdrop-blur-soft)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 'var(--space-4)',
+  };
+
   if (loading) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: 480,
-          maxWidth: '100vw',
-          height: '100vh',
-          backgroundColor: STYLES.cardBg,
-          borderLeft: 'var(--border-default)',
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'var(--shadow-xl)',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Laden...</span>
+      <div style={overlayStyle} onClick={onClose}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: 320,
+            maxWidth: '100%',
+            padding: 'var(--space-6)',
+            backgroundColor: STYLES.cardBg,
+            borderRadius: 'var(--radius-lg)',
+            border: 'var(--border-default)',
+            boxShadow: 'var(--shadow-xl)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Laden...</span>
+        </div>
       </div>
     );
   }
 
   if (!task) {
     return (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: 480,
-          maxWidth: '100vw',
-          height: '100vh',
-          backgroundColor: STYLES.cardBg,
-          borderLeft: 'var(--border-default)',
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: 'var(--shadow-xl)',
-        }}
-      >
-        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
-          Aufgabe nicht gefunden
-        </span>
+      <div style={overlayStyle} onClick={onClose}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: 320,
+            maxWidth: '100%',
+            padding: 'var(--space-6)',
+            backgroundColor: STYLES.cardBg,
+            borderRadius: 'var(--radius-lg)',
+            border: 'var(--border-default)',
+            boxShadow: 'var(--shadow-xl)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
+            Aufgabe nicht gefunden
+          </span>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(0,0,0,0.3)',
-          zIndex: 49,
-        }}
-      />
-
+    <div style={overlayStyle} onClick={onClose}>
       {/* Panel */}
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
-          position: 'fixed',
-          top: 0,
-          right: 0,
-          width: 480,
-          maxWidth: '100vw',
-          height: '100vh',
+          position: 'relative',
+          width: '100%',
+          maxWidth: 640,
+          maxHeight: '85vh',
           backgroundColor: STYLES.cardBg,
-          borderLeft: 'var(--border-default)',
-          zIndex: 50,
+          borderRadius: 'var(--radius-lg)',
+          border: 'var(--border-default)',
+          zIndex: 'var(--z-modal)',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'var(--shadow-xl)',
+          overflow: 'hidden',
         }}
       >
         {/* Header */}
@@ -480,21 +513,15 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
               </span>
             </div>
             <ProgressBar progress={task.progress ?? 0} />
-            <input
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={task.progress ?? 0}
-              onChange={handleProgressChange}
+            <div
               style={{
-                width: '100%',
                 marginTop: 'var(--space-1)',
-                accentColor: 'var(--color-accent-red)',
-                height: 4,
-                cursor: 'pointer',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-muted)',
               }}
-            />
+            >
+              Ergibt sich automatisch aus der Checkliste unten.
+            </div>
           </div>
 
           {/* Priority selector */}
@@ -598,26 +625,71 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                       </button>
                     </span>
                   ))}
-                  <input
-                    value={assigneeInput}
-                    onChange={(e) => setAssigneeInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddAssignee();
-                      }
-                    }}
-                    placeholder="+ Bearbeiter"
-                    style={{
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      color: 'var(--text-muted)',
-                      fontSize: 'var(--text-xs)',
-                      outline: 'none',
-                      width: 100,
-                      padding: '2px 0',
-                    }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      value={assigneeInput}
+                      onChange={(e) => setAssigneeInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && assigneeSuggestions[0]) {
+                          e.preventDefault();
+                          handleAddAssignee(assigneeSuggestions[0]);
+                        } else if (e.key === 'Escape') {
+                          setAssigneeInput('');
+                          setAssigneeSuggestions([]);
+                        }
+                      }}
+                      placeholder="+ Bearbeiter"
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: 'var(--text-muted)',
+                        fontSize: 'var(--text-xs)',
+                        outline: 'none',
+                        width: 120,
+                        padding: '2px 0',
+                      }}
+                    />
+                    {assigneeSuggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          marginTop: 'var(--space-1)',
+                          backgroundColor: 'var(--surface-1)',
+                          border: 'var(--border-default)',
+                          borderRadius: 'var(--radius-md)',
+                          boxShadow: 'var(--shadow-dropdown)',
+                          minWidth: 180,
+                          zIndex: 1,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {assigneeSuggestions.map((u) => (
+                          <button
+                            key={u.userId}
+                            onClick={() => handleAddAssignee(u)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 'var(--space-2)',
+                              width: '100%',
+                              padding: 'var(--space-2) var(--space-3)',
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-primary)',
+                              fontSize: 'var(--text-sm)',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                            }}
+                          >
+                            <Avatar username={u.username} size="sm" />
+                            <span>{u.username}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -746,7 +818,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
           />
 
           {/* Sub-components */}
-          <ChecklistSection taskId={taskId} />
+          <ChecklistSection taskId={taskId} onProgressChanged={fetchTask} />
           <NotesSection taskId={taskId} initialValue={task.richTextNotes || ''} />
           <CommentsSection taskId={taskId} />
           <AttachmentsSection taskId={taskId} />
@@ -755,6 +827,6 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
           <div style={{ height: 'var(--space-8)' }} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

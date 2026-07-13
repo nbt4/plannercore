@@ -163,6 +163,26 @@ func main() {
 		})
 	})
 
+	// Users endpoint - searches active cores users for assignee suggestions.
+	api.GET("/users", func(c *gin.Context) {
+		q := c.Query("q")
+		query := db.Where("is_active = ?", true)
+		if q != "" {
+			like := "%" + q + "%"
+			query = query.Where("username ILIKE ? OR email ILIKE ?", like, like)
+		}
+		var users []auth.User
+		if err := query.Order("username ASC").Limit(20).Find(&users).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		result := make([]gin.H, len(users))
+		for i, u := range users {
+			result[i] = gin.H{"userId": fmt.Sprintf("%d", u.UserID), "username": u.Username}
+		}
+		c.JSON(http.StatusOK, result)
+	})
+
 	// Plan-scoped routes require plan membership
 	planRoutes := api.Group("")
 	planRoutes.Use(sessionValidator.RequirePlanMember("planId"))

@@ -54,6 +54,20 @@ func (r *Repository) Delete(id string) error {
 	return r.db.Delete(&core.Task{}, "id = ?", id).Error
 }
 
+// ChecklistCounts returns the total and completed checklist item counts for
+// a task, used to derive its progress percentage.
+func (r *Repository) ChecklistCounts(taskID string) (total, completed int, err error) {
+	var totalCount int64
+	if err = r.db.Model(&core.ChecklistItem{}).Where("task_id = ?", taskID).Count(&totalCount).Error; err != nil {
+		return 0, 0, err
+	}
+	var completedCount int64
+	if err = r.db.Model(&core.ChecklistItem{}).Where("task_id = ? AND is_completed = ?", taskID, true).Count(&completedCount).Error; err != nil {
+		return 0, 0, err
+	}
+	return int(totalCount), int(completedCount), nil
+}
+
 func (r *Repository) FindByAssignee(userID string) ([]core.Task, error) {
 	var tasks []core.Task
 	err := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?)", userID).

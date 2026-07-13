@@ -5,15 +5,16 @@ import { api } from '../../services/plannerApi';
 interface ChecklistItem {
   id: string;
   title: string;
-  completed: boolean;
+  isCompleted: boolean;
   position?: number;
 }
 
 interface ChecklistSectionProps {
   taskId: string;
+  onProgressChanged?: () => void;
 }
 
-export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
+export default function ChecklistSection({ taskId, onProgressChanged }: ChecklistSectionProps) {
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [newTitle, setNewTitle] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -22,12 +23,12 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
   useEffect(() => {
     if (taskId) {
       api.tasks.get(taskId).then((task) => {
-        if (task.checklists) setItems(task.checklists);
+        if (task.checklistItems) setItems(task.checklistItems);
       }).catch(() => {});
     }
   }, [taskId]);
 
-  const completed = items.filter((i) => i.completed).length;
+  const completed = items.filter((i) => i.isCompleted).length;
   const total = items.length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
@@ -38,27 +39,28 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
       const created = await api.checklists.add(taskId, title);
       setItems((prev) => [...prev, created]);
       setNewTitle('');
+      onProgressChanged?.();
     } catch (e) {
       /* silently fail */
     }
   };
 
   const handleToggle = async (id: string) => {
-    // FIXED: calculate new completed state for toggle API
     const currentItem = items.find((i) => i.id === id);
-    const newCompleted = !currentItem?.completed;
+    const newCompleted = !currentItem?.isCompleted;
     setItems((prev) =>
       prev.map((item) =>
-        item.id === id ? { ...item, completed: newCompleted } : item,
+        item.id === id ? { ...item, isCompleted: newCompleted } : item,
       ),
     );
     try {
       await api.checklists.toggle(id, newCompleted);
+      onProgressChanged?.();
     } catch (e) {
       /* revert on error - we don't have previous state easily, just refetch */
       setItems((prev) =>
         prev.map((item) =>
-          item.id === id ? { ...item, completed: !item.completed } : item,
+          item.id === id ? { ...item, isCompleted: !item.isCompleted } : item,
         ),
       );
     }
@@ -68,6 +70,7 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
     setItems((prev) => prev.filter((item) => item.id !== id));
     try {
       await api.checklists.delete(id);
+      onProgressChanged?.();
     } catch (e) {
       /* silently fail - item already removed optimistically */
     }
@@ -89,7 +92,7 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
     );
     setEditingId(null);
     try {
-      await api.tasks.update(taskId, { checklists: items.map((i) => i.id === id ? { ...i, title } : i) });
+      await api.checklists.updateTitle(id, title);
     } catch (e) {
       /* silently fail */
     }
@@ -184,8 +187,8 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
                 width: 18,
                 height: 18,
                 borderRadius: 'var(--radius-sm)',
-                border: `2px solid ${item.completed ? 'var(--color-success)' : 'var(--border-strong)'}`,
-                backgroundColor: item.completed ? 'var(--color-success)' : 'transparent',
+                border: `2px solid ${item.isCompleted ? 'var(--color-success)' : 'var(--border-strong)'}`,
+                backgroundColor: item.isCompleted ? 'var(--color-success)' : 'transparent',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -195,7 +198,7 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
                 transition: 'all var(--transition-fast)',
               }}
             >
-              {item.completed && (
+              {item.isCompleted && (
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
@@ -229,8 +232,8 @@ export default function ChecklistSection({ taskId }: ChecklistSectionProps) {
                 style={{
                   flex: 1,
                   fontSize: 'var(--text-sm)',
-                  color: item.completed ? 'var(--text-muted)' : 'var(--text-primary)',
-                  textDecoration: item.completed ? 'line-through' : 'none',
+                  color: item.isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
+                  textDecoration: item.isCompleted ? 'line-through' : 'none',
                   cursor: 'text',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',

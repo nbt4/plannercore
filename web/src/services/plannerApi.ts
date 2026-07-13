@@ -91,12 +91,14 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(items),
       }),
-    updateProgress: (taskId: string, progress: number) =>
-      request<any>(`${BASE}/tasks/${taskId}/progress`, {
-        method: 'PATCH',
+    addAssignee: (taskId: string, userId: string) =>
+      request<any>(`${BASE}/tasks/${taskId}/assignees`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ progress }),
+        body: JSON.stringify({ userId }),
       }),
+    removeAssignee: (taskId: string, userId: string) =>
+      request<void>(`${BASE}/tasks/${taskId}/assignees/${userId}`, { method: 'DELETE' }),
   },
 
   // FIXED: Checklists use plan/task-scoped paths matching backend
@@ -112,6 +114,12 @@ export const api = {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isCompleted }),
+      }),
+    updateTitle: (id: string, title: string) =>
+      request<any>(`${BASE}/checklist/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
       }),
     delete: (id: string) =>
       request<void>(`${BASE}/checklist/${id}`, { method: 'DELETE' }),
@@ -151,6 +159,13 @@ export const api = {
       }),
     delete: (planId: string, id: string) =>
       request<void>(`${BASE}/${planId}/labels/${id}`, { method: 'DELETE' }),
+  },
+
+  users: {
+    search: (q: string) =>
+      request<{ userId: string; username: string }[]>(
+        `${BASE}/users${q ? `?q=${encodeURIComponent(q)}` : ''}`,
+      ),
   },
 
   my: {

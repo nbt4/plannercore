@@ -262,6 +262,9 @@ export default function BoardView() {
             setSelectedTaskId(null);
             setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
           }}
+          onTaskUpdated={(updated) => {
+            setTasks((prev) => prev.map((t: any) => (t.id === updated.id ? { ...t, ...updated } : t)));
+          }}
         />
       )}
     </div>

@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { STYLES } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
@@ -32,7 +32,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     borderRadius: STYLES.cardRadius,
     boxShadow: STYLES.cardShadow,
     border: 'var(--border-default)',
-    cursor: 'pointer',
+    cursor: isDragging ? 'grabbing' : 'grab',
     padding: 'var(--space-3)',
   };
 
@@ -49,35 +49,8 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
       style={style}
       onClick={onClick}
       {...attributes}
+      {...listeners}
     >
-      {/* Drag handle (visible on hover) */}
-      <div
-        {...listeners}
-        style={{
-          position: 'absolute',
-          top: 'var(--space-1)',
-          right: 'var(--space-1)',
-          padding: '2px',
-          borderRadius: 'var(--radius-sm)',
-          color: 'var(--text-muted)',
-          cursor: 'grab',
-          opacity: 0,
-          transition: 'opacity var(--transition-fast)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-        className="task-drag-handle"
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLDivElement).style.opacity = '1';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLDivElement).style.opacity = '0';
-        }}
-      >
-        <GripVertical size={14} />
-      </div>
-
       {/* Labels */}
       {task.labels && task.labels.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginBottom: 'var(--space-2)' }}>
@@ -180,16 +153,6 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
           </span>
         )}
       </div>
-
-      {/* Hover styles for the card */}
-      <style>{`
-        .task-drag-handle {
-          opacity: 0;
-        }
-        div:hover > .task-drag-handle {
-          opacity: 1;
-        }
-      `}</style>
     </div>
   );
 }

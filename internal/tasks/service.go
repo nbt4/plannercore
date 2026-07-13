@@ -57,9 +57,6 @@ func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID s
 	if v, ok := updates["priority"].(string); ok {
 		task.Priority = v
 	}
-	if v, ok := updates["progress"].(float64); ok {
-		task.Progress = int(v)
-	}
 	if v, ok := updates["richTextNotes"].(string); ok {
 		task.RichTextNotes = v
 	}
@@ -84,6 +81,36 @@ func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID s
 		UserID:  userID,
 	})
 	return task, nil
+}
+
+// recomputeProgress derives a task's progress percentage from its checklist
+// items and persists it. Progress has no manual setter — it always reflects
+// checklist completion (0 when there are no checklist items yet).
+func (s *Service) recomputeProgress(taskID string) error {
+	total, completed, err := s.repo.ChecklistCounts(taskID)
+	if err != nil {
+		return err
+	}
+	task, err := s.repo.FindByID(taskID)
+	if err != nil {
+		return err
+	}
+	task.ChecklistTotalCount = total
+	task.ChecklistCompletedCount = completed
+	if total > 0 {
+		task.Progress = int(float64(completed) / float64(total) * 100)
+	} else {
+		task.Progress = 0
+	}
+	if err := s.repo.Update(task); err != nil {
+		return err
+	}
+	s.eventBus.Publish(task.PlanID, core.PlanEvent{
+		Type:    core.EventTaskUpdated,
+		PlanID:  task.PlanID,
+		Payload: task,
+	})
+	return nil
 }
 
 func (s *Service) DeleteTask(id, userID string) error {

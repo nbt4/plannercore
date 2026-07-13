@@ -37,7 +37,6 @@ func (h *Handler) RegisterRoutes(api *gin.RouterGroup, planRoutes *gin.RouterGro
 	tasks.GET("/:taskId", requireTask, h.GetTask)
 	tasks.PUT("/:taskId", requireTask, h.UpdateTask)
 	tasks.DELETE("/:taskId", requireTask, h.DeleteTask)
-	tasks.PATCH("/:taskId/progress", requireTask, h.UpdateProgress)
 	tasks.POST("/:taskId/checklist", requireTask, h.AddChecklistItem)
 	tasks.POST("/:taskId/assignees", requireTask, h.AddAssignee)
 	tasks.DELETE("/:taskId/assignees/:userId", requireTask, h.RemoveAssignee)
@@ -190,34 +189,6 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "deleted"})
 }
 
-func (h *Handler) UpdateProgress(c *gin.Context) {
-	var input struct {
-		Progress int `json:"progress" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	user, _ := h.sessionVal.GetCurrentUser(c)
-	task, err := h.service.GetTask(c.Param("taskId"))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
-		return
-	}
-	task.Progress = input.Progress
-	if err := h.repo.Update(task); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	h.service.eventBus.Publish(task.PlanID, core.PlanEvent{
-		Type:    core.EventTaskUpdated,
-		PlanID:  task.PlanID,
-		Payload: task,
-		UserID:  fmt.Sprintf("%d", user.UserID),
-	})
-	c.JSON(http.StatusOK, task)
-}
-
 // FIXED: ReorderTasks now validates plan membership, uses a DB transaction,
 // and validates that all task IDs belong to the plan.
 func (h *Handler) ReorderTasks(c *gin.Context) {
@@ -321,11 +292,16 @@ func (h *Handler) AddChecklistItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	taskID := c.Param("taskId")
 	item := core.ChecklistItem{
-		TaskID: c.Param("taskId"),
+		TaskID: taskID,
 		Title:  input.Title,
 	}
 	if err := h.repo.db.Create(&item).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.recomputeProgress(taskID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -348,15 +324,35 @@ func (h *Handler) UpdateChecklistItem(c *gin.Context) {
 	if input.IsCompleted != nil {
 		updates["is_completed"] = *input.IsCompleted
 	}
+	var item core.ChecklistItem
+	if err := h.repo.db.Select("task_id").First(&item, "id = ?", c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "checklist item not found"})
+		return
+	}
 	if err := h.repo.db.Model(&core.ChecklistItem{}).Where("id = ?", c.Param("id")).Updates(updates).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
+	}
+	if input.IsCompleted != nil {
+		if err := h.service.recomputeProgress(item.TaskID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "updated"})
 }
 
 func (h *Handler) DeleteChecklistItem(c *gin.Context) {
+	var item core.ChecklistItem
+	if err := h.repo.db.Select("task_id").First(&item, "id = ?", c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "checklist item not found"})
+		return
+	}
 	if err := h.repo.db.Delete(&core.ChecklistItem{}, "id = ?", c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.service.recomputeProgress(item.TaskID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
