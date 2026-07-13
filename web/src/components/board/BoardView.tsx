@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import { api } from '../../services/plannerApi';
-import { useTasks } from '../../hooks/useTasks';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import BucketColumn from './BucketColumn';
 import AddBucketInline from './AddBucketInline';
 import EmptyState from '../shared/EmptyState';
@@ -20,25 +20,17 @@ import type { TaskCardData } from './types';
 
 export default function BoardView() {
   const { planId } = useParams<{ planId: string }>();
-  const { tasks, setTasks } = useTasks(planId || '');
-  const [buckets, setBuckets] = useState<any[]>([]);
+  const { tasks, buckets, reorderTask } = usePlanTasks();
   const [labels, setLabels] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
 
-  // Load buckets and labels
+  // Labels aren't part of live-sync (no label.* events exist yet) — kept as
+  // BoardView's own fetch, same as before.
   useEffect(() => {
     if (planId && planId !== 'new') {
-      api.buckets
-        .list(planId)
-        .then(setBuckets)
-        .catch(() => setBuckets([]));
-      api.labels
-        .list(planId)
-        .then(setLabels)
-        .catch(() => setLabels([]));
+      api.labels.list(planId).then(setLabels).catch(() => setLabels([]));
     } else {
-      setBuckets([]);
       setLabels([]);
     }
   }, [planId]);
@@ -78,15 +70,6 @@ export default function BoardView() {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const refetchTasks = useCallback(() => {
-    if (planId && planId !== 'new') {
-      api.tasks
-        .list(planId)
-        .then(setTasks)
-        .catch(() => {});
-    }
-  }, [planId, setTasks]);
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -98,7 +81,6 @@ export default function BoardView() {
       const activeTask = tasks.find((t: any) => t.id === activeId);
       if (!activeTask) return;
 
-      // Determine destination bucket
       let newBucketId: string | undefined;
       let overTaskId: string | undefined;
 
@@ -113,11 +95,9 @@ export default function BoardView() {
         newBucketId = overTask.bucketId || undefined;
       }
 
-      // Determine source bucket
       const srcBucketId = activeTask.bucketId || '__unassigned__';
       const destBucketId = newBucketId || '__unassigned__';
 
-      // Build grouped task map (shallow clone to avoid mutation)
       const grouped: Record<string, any[]> = {};
       tasks.forEach((t: any) => {
         const bid = t.bucketId || '__unassigned__';
@@ -125,67 +105,36 @@ export default function BoardView() {
         grouped[bid].push({ ...t });
       });
 
-      // Remove from source
-      grouped[srcBucketId] = (grouped[srcBucketId] || []).filter(
-        (t: any) => t.id !== activeId,
-      );
-
-      // Add to destination
+      grouped[srcBucketId] = (grouped[srcBucketId] || []).filter((t: any) => t.id !== activeId);
       if (!grouped[destBucketId]) grouped[destBucketId] = [];
 
       const updatedTask = { ...activeTask, bucketId: newBucketId || '' };
 
-      if (overTaskId && destBucketId === srcBucketId) {
-        // Same bucket, find insertion index relative to over task
-        const overIdx = grouped[destBucketId].findIndex(
-          (t: any) => t.id === overTaskId,
-        );
-        if (overIdx >= 0) {
-          grouped[destBucketId].splice(overIdx, 0, updatedTask);
-        } else {
-          grouped[destBucketId].push(updatedTask);
-        }
-      } else if (overTaskId) {
-        // Different bucket, find insertion index
-        const overIdx = grouped[destBucketId].findIndex(
-          (t: any) => t.id === overTaskId,
-        );
+      if (overTaskId) {
+        const overIdx = grouped[destBucketId].findIndex((t: any) => t.id === overTaskId);
         if (overIdx >= 0) {
           grouped[destBucketId].splice(overIdx, 0, updatedTask);
         } else {
           grouped[destBucketId].push(updatedTask);
         }
       } else {
-        // Dropped on bucket directly - add to end
         grouped[destBucketId].push(updatedTask);
       }
 
-      // Re-number positions and flatten
       const allTasks: any[] = [];
       Object.entries(grouped).forEach(([bid, arr]) => {
         arr.forEach((t: any, i: number) => {
           allTasks.push({
-            ...t,
+            id: t.id,
             bucketId: bid === '__unassigned__' ? '' : bid,
             position: i,
           });
         });
       });
 
-      // Optimistic update
-      setTasks(allTasks);
-
-      // Call the API
-      const items = allTasks.map((t: any) => ({
-        id: t.id,
-        bucketId: t.bucketId,
-        position: t.position,
-      }));
-      api.tasks.reorder(planId, items).catch(() => {
-        refetchTasks();
-      });
+      reorderTask(allTasks).catch(() => {});
     },
-    [planId, tasks, buckets, setTasks, refetchTasks],
+    [planId, tasks, buckets, reorderTask],
   );
 
   // Build merged list: bucket + its tasks
@@ -253,23 +202,10 @@ export default function BoardView() {
               planId={planId}
               isFirst={idx === 0}
               isLast={idx === columns.length - 1}
-              onBucketRenamed={(id, name) =>
-                setBuckets((prev) => prev.map((b) => (b.id === id ? { ...b, name } : b)))
-              }
-              onBucketDeleted={(id) => {
-                setBuckets((prev) => prev.filter((b) => b.id !== id));
-                refetchTasks();
-              }}
-              onBucketMoved={() => {
-                api.buckets.list(planId).then(setBuckets).catch(() => {});
-              }}
               onTaskClick={(taskId) => setSelectedTaskId(taskId)}
             />
           ))}
-          <AddBucketInline
-            planId={planId}
-            onBucketAdded={(bucket) => setBuckets((prev) => [...prev, bucket])}
-          />
+          <AddBucketInline planId={planId} />
         </div>
       </DndContext>
       {selectedTaskId && (
@@ -277,11 +213,7 @@ export default function BoardView() {
           taskId={selectedTaskId}
           onClose={() => setSelectedTaskId(null)}
           planId={planId}
-          onTaskDeleted={(taskId) => {
-            setSelectedTaskId(null);
-            setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
-          }}
-          onTaskUpdated={() => refetchTasks()}
+          onTaskDeleted={() => setSelectedTaskId(null)}
         />
       )}
     </div>
