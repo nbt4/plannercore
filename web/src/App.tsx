@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { PlanProvider } from './contexts/PlanContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
+import { TasksProvider } from './contexts/TasksContext'
 import Sidebar from './components/layout/Sidebar'
 import PlanHeader from './components/layout/PlanHeader'
 import BoardView from './components/board/BoardView'
@@ -68,13 +69,15 @@ export default function App() {
       <AuthProvider>
         <PlanProvider>
           <WebSocketProvider>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/plan/:planId/*" element={<AuthGate><PlanLayout /></AuthGate>} />
-              <Route path="/my/tasks" element={<AuthGate><AppLayout><MyTasksPage /></AppLayout></AuthGate>} />
-              <Route path="/my/day" element={<AuthGate><AppLayout><MyDayPage /></AppLayout></AuthGate>} />
-              <Route path="*" element={<Navigate to="/plan/new" />} />
-            </Routes>
+            <TasksProvider>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/plan/:planId/*" element={<AuthGate><PlanLayout /></AuthGate>} />
+                <Route path="/my/tasks" element={<AuthGate><AppLayout><MyTasksPage /></AppLayout></AuthGate>} />
+                <Route path="/my/day" element={<AuthGate><AppLayout><MyDayPage /></AppLayout></AuthGate>} />
+                <Route path="*" element={<Navigate to="/plan/new" />} />
+              </Routes>
+            </TasksProvider>
           </WebSocketProvider>
         </PlanProvider>
       </AuthProvider>
