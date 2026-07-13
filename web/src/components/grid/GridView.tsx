@@ -2,6 +2,7 @@ import { Fragment, useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid } from 'lucide-react';
 import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import { PRIORITY_COLORS, STATUS_COLORS, STATUS_LABELS } from '../../lib/constants';
 import {
   EMPTY_FILTERS,
@@ -24,8 +25,7 @@ const COLUMN_COUNT = 8;
 
 export default function GridView() {
   const { planId } = useParams<{ planId: string }>();
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [buckets, setBuckets] = useState<any[]>([]);
+  const { tasks, buckets } = usePlanTasks();
   const [labels, setLabels] = useState<any[]>([]);
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -33,23 +33,13 @@ export default function GridView() {
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  const refetchTasks = useCallback(() => {
-    if (planId && planId !== 'new') {
-      api.tasks.list(planId).then(setTasks).catch(() => {});
-    }
-  }, [planId]);
-
+  // Labels aren't part of live-sync yet — kept as GridView's own fetch.
   useEffect(() => {
     if (planId && planId !== 'new') {
-      refetchTasks();
-      api.buckets.list(planId).then(setBuckets).catch(() => setBuckets([]));
       api.labels.list(planId).then(setLabels).catch(() => setLabels([]));
     } else {
-      setTasks([]);
-      setBuckets([]);
       setLabels([]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId]);
 
   const bucketMap = useMemo(() => {
@@ -458,11 +448,7 @@ export default function GridView() {
           taskId={selectedTaskId}
           onClose={() => setSelectedTaskId(null)}
           planId={planId}
-          onTaskDeleted={(taskId) => {
-            setSelectedTaskId(null);
-            setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
-          }}
-          onTaskUpdated={() => refetchTasks()}
+          onTaskDeleted={() => setSelectedTaskId(null)}
         />
       )}
     </>

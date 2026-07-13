@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar as RBCalendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import EmptyState from '../shared/EmptyState';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
 
@@ -21,19 +21,8 @@ const localizer = dateFnsLocalizer({
 
 export default function ScheduleView() {
   const { planId } = useParams<{ planId: string }>();
-  const [tasks, setTasks] = useState<any[]>([]);
+  const { tasks } = usePlanTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (planId && planId !== 'new') {
-      api.tasks
-        .list(planId)
-        .then(setTasks)
-        .catch(() => setTasks([]));
-    } else {
-      setTasks([]);
-    }
-  }, [planId]);
 
   const events = useMemo(() => {
     return tasks

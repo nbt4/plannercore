@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { GanttChart } from 'lucide-react';
-import { api } from '../../services/plannerApi';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import { PRIORITY_COLORS } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import EmptyState from '../shared/EmptyState';
@@ -9,19 +9,8 @@ import TaskDetailPanel from '../tasks/TaskDetailPanel';
 
 export default function TimelineView() {
   const { planId } = useParams<{ planId: string }>();
-  const [tasks, setTasks] = useState<any[]>([]);
+  const { tasks } = usePlanTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (planId && planId !== 'new') {
-      api.tasks
-        .list(planId)
-        .then(setTasks)
-        .catch(() => setTasks([]));
-    } else {
-      setTasks([]);
-    }
-  }, [planId]);
 
   const { timedTasks, dateRange } = useMemo(() => {
     const withDates = tasks.filter(
