@@ -68,6 +68,21 @@ func (r *Repository) ChecklistCounts(taskID string) (total, completed int, err e
 	return int(totalCount), int(completedCount), nil
 }
 
+// CopyAssignees copies the assignee list from one task to another, used
+// when spinning off the next occurrence of a recurring task.
+func (r *Repository) CopyAssignees(fromTaskID, toTaskID string) error {
+	var assignees []core.TaskAssignee
+	if err := r.db.Where("task_id = ?", fromTaskID).Find(&assignees).Error; err != nil {
+		return err
+	}
+	for _, a := range assignees {
+		if err := r.db.Create(&core.TaskAssignee{TaskID: toTaskID, UserID: a.UserID}).Error; err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (r *Repository) FindByAssignee(userID string) ([]core.Task, error) {
 	var tasks []core.Task
 	err := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?)", userID).

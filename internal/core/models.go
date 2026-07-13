@@ -60,6 +60,7 @@ type Task struct {
 	Title                  string           `json:"title" gorm:"not null"`
 	RichTextNotes          string           `json:"richTextNotes" gorm:"column:rich_text_notes"`
 	Priority               string           `json:"priority" gorm:"default:'medium'"`
+	Recurrence             string           `json:"recurrence" gorm:"column:recurrence;default:'none'"`
 	Progress               int              `json:"progress" gorm:"default:0;check:progress >= 0 AND progress <= 100"`
 	StartDate              *time.Time       `json:"startDate" gorm:"column:start_date"`
 	DueDate                *time.Time       `json:"dueDate" gorm:"column:due_date"`

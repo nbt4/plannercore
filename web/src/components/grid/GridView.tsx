@@ -1,34 +1,55 @@
-import { useState, useEffect, useMemo } from 'react';
+import { Fragment, useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, LayoutGrid } from 'lucide-react';
 import { api } from '../../services/plannerApi';
-import { PRIORITY_COLORS } from '../../lib/constants';
+import { PRIORITY_COLORS, STATUS_COLORS, STATUS_LABELS } from '../../lib/constants';
+import {
+  EMPTY_FILTERS,
+  assigneeOptionsFromTasks,
+  filterTasks,
+  type TaskFilters,
+} from '../../lib/taskFilters';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
 import ProgressBar from '../shared/ProgressBar';
 import Avatar from '../shared/Avatar';
 import EmptyState from '../shared/EmptyState';
+import FilterBar from '../shared/FilterBar';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
 
 type SortField = 'title' | 'priority' | 'dueDate' | 'progress' | 'bucket';
 type SortDir = 'asc' | 'desc';
+type GroupBy = 'none' | 'bucket' | 'assignee' | 'priority' | 'status' | 'label';
+const COLUMN_COUNT = 8;
 
 export default function GridView() {
   const { planId } = useParams<{ planId: string }>();
   const [tasks, setTasks] = useState<any[]>([]);
   const [buckets, setBuckets] = useState<any[]>([]);
+  const [labels, setLabels] = useState<any[]>([]);
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [groupBy, setGroupBy] = useState<GroupBy>('none');
+  const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const refetchTasks = useCallback(() => {
+    if (planId && planId !== 'new') {
+      api.tasks.list(planId).then(setTasks).catch(() => {});
+    }
+  }, [planId]);
 
   useEffect(() => {
     if (planId && planId !== 'new') {
-      api.tasks.list(planId).then(setTasks).catch(() => setTasks([]));
+      refetchTasks();
       api.buckets.list(planId).then(setBuckets).catch(() => setBuckets([]));
+      api.labels.list(planId).then(setLabels).catch(() => setLabels([]));
     } else {
       setTasks([]);
       setBuckets([]);
+      setLabels([]);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId]);
 
   const bucketMap = useMemo(() => {
@@ -37,8 +58,11 @@ export default function GridView() {
     return map;
   }, [buckets]);
 
+  const assigneeOptions = useMemo(() => assigneeOptionsFromTasks(tasks), [tasks]);
+  const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
+
   const sortedTasks = useMemo(() => {
-    return [...tasks].sort((a, b) => {
+    return [...filteredTasks].sort((a, b) => {
       let cmp = 0;
       switch (sortField) {
         case 'title':
@@ -65,7 +89,51 @@ export default function GridView() {
       }
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [tasks, sortField, sortDir, bucketMap]);
+  }, [filteredTasks, sortField, sortDir, bucketMap]);
+
+  // When grouping is active, a task can land in more than one group (e.g.
+  // grouping by label when it has several), so groups are built independently
+  // of the flat sortedTasks array rather than partitioning it.
+  const groups = useMemo(() => {
+    if (groupBy === 'none') return null;
+    const order: string[] = [];
+    const map = new Map<string, { label: string; tasks: any[] }>();
+    const addTo = (key: string, label: string, task: any) => {
+      if (!map.has(key)) {
+        map.set(key, { label, tasks: [] });
+        order.push(key);
+      }
+      map.get(key)!.tasks.push(task);
+    };
+    sortedTasks.forEach((task) => {
+      switch (groupBy) {
+        case 'bucket':
+          addTo(task.bucketId || '__none__', bucketMap[task.bucketId] || 'Keine Spalte', task);
+          break;
+        case 'assignee':
+          if ((task.assignees || []).length === 0) {
+            addTo('__none__', 'Nicht zugewiesen', task);
+          } else {
+            task.assignees.forEach((a: any) => addTo(a.userId, a.username || a.userId, task));
+          }
+          break;
+        case 'priority':
+          addTo(task.priority || '__none__', task.priority || 'Keine Priorität', task);
+          break;
+        case 'status':
+          addTo(task.status || 'not-started', STATUS_LABELS[task.status] || task.status, task);
+          break;
+        case 'label':
+          if ((task.labels || []).length === 0) {
+            addTo('__none__', 'Kein Label', task);
+          } else {
+            task.labels.forEach((l: any) => addTo(l.id, l.name, task));
+          }
+          break;
+      }
+    });
+    return order.map((key) => map.get(key)!);
+  }, [sortedTasks, groupBy, bucketMap]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -108,6 +176,162 @@ export default function GridView() {
     );
   };
 
+  const PlainHeader = ({ label }: { label: string }) => (
+    <th
+      style={{
+        padding: 'var(--space-2) var(--space-3)',
+        textAlign: 'left',
+        fontSize: 'var(--text-xs)',
+        fontWeight: 'var(--weight-semibold)',
+        color: 'var(--text-muted)',
+        textTransform: 'uppercase',
+        letterSpacing: 'var(--tracking-wide)',
+        borderBottom: 'var(--border-default)',
+        whiteSpace: 'nowrap',
+        position: 'sticky',
+        top: 0,
+        backgroundColor: 'var(--surface-0)',
+        zIndex: 1,
+      }}
+    >
+      {label}
+    </th>
+  );
+
+  const renderRow = (task: any, idx: number) => (
+    <tr
+      key={task.id}
+      onClick={() => setSelectedTaskId(task.id)}
+      style={{
+        cursor: 'pointer',
+        transition: 'background-color var(--transition-fast)',
+        backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--surface-1)',
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-2)';
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.backgroundColor =
+          idx % 2 === 0 ? 'transparent' : 'var(--surface-1)';
+      }}
+    >
+      <td
+        style={{
+          padding: 'var(--space-3)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--text-primary)',
+          fontWeight: 'var(--weight-medium)',
+          borderBottom: 'var(--border-subtle)',
+          maxWidth: 250,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {task.title}
+      </td>
+      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+        {task.status && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 'var(--space-1)',
+              fontSize: 'var(--text-xs)',
+              color: STATUS_COLORS[task.status] || 'var(--text-muted)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: '50%',
+                backgroundColor: STATUS_COLORS[task.status] || 'var(--text-muted)',
+                flexShrink: 0,
+              }}
+            />
+            {STATUS_LABELS[task.status] || task.status}
+          </span>
+        )}
+      </td>
+      <td
+        style={{
+          padding: 'var(--space-3)',
+          fontSize: 'var(--text-sm)',
+          color: 'var(--text-secondary)',
+          borderBottom: 'var(--border-subtle)',
+        }}
+      >
+        {bucketMap[task.bucketId] || '-'}
+      </td>
+      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+        <PriorityBadge priority={task.priority} />
+      </td>
+      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {(task.assignees || []).slice(0, 3).map((a: any, i: number, arr: any[]) => (
+            <div
+              key={a.userId}
+              style={{
+                marginLeft: i > 0 ? '-6px' : 0,
+                zIndex: arr.length - i,
+              }}
+            >
+              <Avatar username={a.username || a.userId} size="sm" />
+            </div>
+          ))}
+          {(task.assignees || []).length > 3 && (
+            <span
+              style={{
+                marginLeft: 'var(--space-1)',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-muted)',
+              }}
+            >
+              +{task.assignees.length - 3}
+            </span>
+          )}
+        </div>
+      </td>
+      <td
+        style={{
+          padding: 'var(--space-3)',
+          fontSize: 'var(--text-sm)',
+          color: task.isLate ? 'var(--color-error)' : 'var(--text-secondary)',
+          fontWeight: task.isLate ? 'var(--weight-medium)' : 'var(--weight-normal)',
+          borderBottom: 'var(--border-subtle)',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}
+      </td>
+      <td
+        style={{
+          padding: 'var(--space-3)',
+          borderBottom: 'var(--border-subtle)',
+          width: 150,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          <div style={{ flex: 1 }}>
+            <ProgressBar progress={task.progress ?? 0} />
+          </div>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
+            {task.progress ?? 0}%
+          </span>
+        </div>
+      </td>
+      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
+          {(task.labels || []).map((label: any) => (
+            <LabelBadge key={label.id} name={label.name} color={label.color} />
+          ))}
+        </div>
+      </td>
+    </tr>
+  );
+
   if (!planId || planId === 'new') {
     return (
       <EmptyState
@@ -129,6 +353,45 @@ export default function GridView() {
       >
         <div
           style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 'var(--space-3)',
+            alignItems: 'center',
+            marginBottom: 'var(--space-1)',
+          }}
+        >
+          <FilterBar
+            filters={filters}
+            onChange={setFilters}
+            buckets={buckets}
+            labels={labels}
+            assignees={assigneeOptions}
+          />
+          <select
+            value={groupBy}
+            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+            style={{
+              padding: 'var(--space-1) var(--space-2)',
+              backgroundColor: 'var(--surface-1)',
+              border: 'var(--border-default)',
+              borderRadius: 'var(--radius-md)',
+              color: 'var(--text-primary)',
+              fontSize: 'var(--text-xs)',
+              outline: 'none',
+              cursor: 'pointer',
+              marginBottom: 'var(--space-3)',
+            }}
+          >
+            <option value="none">Nicht gruppieren</option>
+            <option value="bucket">Nach Spalte gruppieren</option>
+            <option value="assignee">Nach Bearbeiter gruppieren</option>
+            <option value="priority">Nach Priorität gruppieren</option>
+            <option value="status">Nach Status gruppieren</option>
+            <option value="label">Nach Label gruppieren</option>
+          </select>
+        </div>
+        <div
+          style={{
             backgroundColor: 'var(--surface-0)',
             borderRadius: 'var(--radius-lg)',
             border: 'var(--border-default)',
@@ -139,55 +402,20 @@ export default function GridView() {
             <thead>
               <tr>
                 <SortHeader field="title" label="Aufgabe" />
+                <PlainHeader label="Status" />
                 <SortHeader field="bucket" label="Spalte" />
                 <SortHeader field="priority" label="Priorität" />
-                <th
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    textAlign: 'left',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 'var(--weight-semibold)',
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 'var(--tracking-wide)',
-                    borderBottom: 'var(--border-default)',
-                    whiteSpace: 'nowrap',
-                    position: 'sticky',
-                    top: 0,
-                    backgroundColor: 'var(--surface-0)',
-                    zIndex: 1,
-                  }}
-                >
-                  Bearbeiter
-                </th>
+                <PlainHeader label="Bearbeiter" />
                 <SortHeader field="dueDate" label="Fällig am" />
                 <SortHeader field="progress" label="Fortschritt" />
-                <th
-                  style={{
-                    padding: 'var(--space-2) var(--space-3)',
-                    textAlign: 'left',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 'var(--weight-semibold)',
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: 'var(--tracking-wide)',
-                    borderBottom: 'var(--border-default)',
-                    whiteSpace: 'nowrap',
-                    position: 'sticky',
-                    top: 0,
-                    backgroundColor: 'var(--surface-0)',
-                    zIndex: 1,
-                  }}
-                >
-                  Labels
-                </th>
+                <PlainHeader label="Labels" />
               </tr>
             </thead>
             <tbody>
               {sortedTasks.length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={COLUMN_COUNT}
                     style={{
                       padding: 'var(--space-8)',
                       textAlign: 'center',
@@ -195,153 +423,32 @@ export default function GridView() {
                       fontSize: 'var(--text-sm)',
                     }}
                   >
-                    Keine Aufgaben in diesem Plan
+                    Keine Aufgaben gefunden
                   </td>
                 </tr>
               )}
-              {sortedTasks.map((task, idx) => (
-                <tr
-                  key={task.id}
-                  onClick={() => setSelectedTaskId(task.id)}
-                  style={{
-                    cursor: 'pointer',
-                    transition: 'background-color var(--transition-fast)',
-                    backgroundColor: idx % 2 === 0 ? 'transparent' : 'var(--surface-1)',
-                  }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--surface-2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLElement).style.backgroundColor =
-                      idx % 2 === 0 ? 'transparent' : 'var(--surface-1)';
-                  }}
-                >
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-primary)',
-                      fontWeight: 'var(--weight-medium)',
-                      borderBottom: 'var(--border-subtle)',
-                      maxWidth: 250,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {task.title}
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      fontSize: 'var(--text-sm)',
-                      color: 'var(--text-secondary)',
-                      borderBottom: 'var(--border-subtle)',
-                    }}
-                  >
-                    {bucketMap[task.bucketId] || '-'}
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      borderBottom: 'var(--border-subtle)',
-                    }}
-                  >
-                    <PriorityBadge priority={task.priority} />
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      borderBottom: 'var(--border-subtle)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      {(task.assignees || []).slice(0, 3).map((a: any, i: number, arr: any[]) => (
-                        <div
-                          key={a.userId}
+              {groups
+                ? groups.map((group) => (
+                    <Fragment key={group.label}>
+                      <tr>
+                        <td
+                          colSpan={COLUMN_COUNT}
                           style={{
-                            marginLeft: i > 0 ? '-6px' : 0,
-                            zIndex: arr.length - i,
-                          }}
-                        >
-                          <Avatar username={a.username || a.userId} size="sm" />
-                        </div>
-                      ))}
-                      {(task.assignees || []).length > 3 && (
-                        <span
-                          style={{
-                            marginLeft: 'var(--space-1)',
+                            padding: 'var(--space-2) var(--space-3)',
                             fontSize: 'var(--text-xs)',
-                            color: 'var(--text-muted)',
+                            fontWeight: 'var(--weight-semibold)',
+                            color: 'var(--text-secondary)',
+                            backgroundColor: 'var(--surface-1)',
+                            borderBottom: 'var(--border-default)',
                           }}
                         >
-                          +{task.assignees.length - 3}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      fontSize: 'var(--text-sm)',
-                      color: task.dueDate
-                        ? new Date(task.dueDate) < new Date()
-                          ? 'var(--color-error)'
-                          : 'var(--text-secondary)'
-                        : 'var(--text-muted)',
-                      borderBottom: 'var(--border-subtle)',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {task.dueDate
-                      ? new Date(task.dueDate).toLocaleDateString()
-                      : '-'}
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      borderBottom: 'var(--border-subtle)',
-                      width: 150,
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 'var(--space-2)',
-                      }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <ProgressBar progress={task.progress ?? 0} />
-                      </div>
-                      <span
-                        style={{
-                          fontSize: 'var(--text-xs)',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        {task.progress ?? 0}%
-                      </span>
-                    </div>
-                  </td>
-                  <td
-                    style={{
-                      padding: 'var(--space-3)',
-                      borderBottom: 'var(--border-subtle)',
-                    }}
-                  >
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
-                      {(task.labels || []).map((label: any) => (
-                        <LabelBadge
-                          key={label.id}
-                          name={label.name}
-                          color={label.color}
-                        />
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          {group.label} ({group.tasks.length})
+                        </td>
+                      </tr>
+                      {group.tasks.map((task, idx) => renderRow(task, idx))}
+                    </Fragment>
+                  ))
+                : sortedTasks.map((task, idx) => renderRow(task, idx))}
             </tbody>
           </table>
         </div>
@@ -351,6 +458,11 @@ export default function GridView() {
           taskId={selectedTaskId}
           onClose={() => setSelectedTaskId(null)}
           planId={planId}
+          onTaskDeleted={(taskId) => {
+            setSelectedTaskId(null);
+            setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
+          }}
+          onTaskUpdated={() => refetchTasks()}
         />
       )}
     </>

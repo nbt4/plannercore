@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2 } from 'lucide-react';
+import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2, Repeat } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { PRIORITY_COLORS, STATUS_COLORS, STATUS_LABELS, STYLES } from '../../lib/constants';
@@ -140,6 +140,10 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
 
   const handleDueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleUpdate({ dueDate: e.target.value || null });
+  };
+
+  const handleRecurrenceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    handleUpdate({ recurrence: e.target.value });
   };
 
   const handleAddAssignee = async (user: { userId: string; username: string }) => {
@@ -788,6 +792,42 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                     boxSizing: 'border-box',
                   }}
                 />
+              </div>
+            </div>
+
+            {/* Recurrence */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+              <Repeat size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-muted)',
+                    marginBottom: '2px',
+                  }}
+                >
+                  Wiederholung
+                </div>
+                <select
+                  value={task.recurrence || 'none'}
+                  onChange={handleRecurrenceChange}
+                  style={{
+                    padding: 'var(--space-1) var(--space-2)',
+                    backgroundColor: 'var(--surface-2)',
+                    border: 'var(--border-input)',
+                    borderRadius: 'var(--radius-md)',
+                    color: 'var(--text-primary)',
+                    fontSize: 'var(--text-sm)',
+                    outline: 'none',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  <option value="none">Keine</option>
+                  <option value="daily">Täglich</option>
+                  <option value="weekly">Wöchentlich</option>
+                  <option value="monthly">Monatlich</option>
+                </select>
               </div>
             </div>
 

@@ -13,26 +13,38 @@ import { useTasks } from '../../hooks/useTasks';
 import BucketColumn from './BucketColumn';
 import AddBucketInline from './AddBucketInline';
 import EmptyState from '../shared/EmptyState';
+import FilterBar from '../shared/FilterBar';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
+import { EMPTY_FILTERS, assigneeOptionsFromTasks, filterTasks, type TaskFilters } from '../../lib/taskFilters';
 import type { TaskCardData } from './types';
 
 export default function BoardView() {
   const { planId } = useParams<{ planId: string }>();
   const { tasks, setTasks } = useTasks(planId || '');
   const [buckets, setBuckets] = useState<any[]>([]);
+  const [labels, setLabels] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
 
-  // Load buckets
+  // Load buckets and labels
   useEffect(() => {
     if (planId && planId !== 'new') {
       api.buckets
         .list(planId)
         .then(setBuckets)
         .catch(() => setBuckets([]));
+      api.labels
+        .list(planId)
+        .then(setLabels)
+        .catch(() => setLabels([]));
     } else {
       setBuckets([]);
+      setLabels([]);
     }
   }, [planId]);
+
+  const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
+  const assigneeOptions = useMemo(() => assigneeOptionsFromTasks(tasks), [tasks]);
 
   // Group tasks by bucket, sorted by position
   const { tasksByBucket, bucketIds } = useMemo(() => {
@@ -44,7 +56,7 @@ export default function BoardView() {
     });
 
     // Add tasks to their buckets
-    tasks.forEach((t: any) => {
+    filteredTasks.forEach((t: any) => {
       const bid = t.bucketId || '__unassigned__';
       if (!grouped[bid]) grouped[bid] = [];
       grouped[bid].push(t as TaskCardData);
@@ -60,7 +72,7 @@ export default function BoardView() {
     );
 
     return { tasksByBucket: grouped, bucketIds: ids };
-  }, [buckets, tasks]);
+  }, [buckets, filteredTasks]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -217,6 +229,13 @@ export default function BoardView() {
         padding: 'var(--space-4)',
       }}
     >
+      <FilterBar
+        filters={filters}
+        onChange={setFilters}
+        buckets={buckets}
+        labels={labels}
+        assignees={assigneeOptions}
+      />
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div
           style={{
@@ -262,9 +281,7 @@ export default function BoardView() {
             setSelectedTaskId(null);
             setTasks((prev) => prev.filter((t: any) => t.id !== taskId));
           }}
-          onTaskUpdated={(updated) => {
-            setTasks((prev) => prev.map((t: any) => (t.id === updated.id ? { ...t, ...updated } : t)));
-          }}
+          onTaskUpdated={() => refetchTasks()}
         />
       )}
     </div>

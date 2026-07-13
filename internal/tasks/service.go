@@ -76,16 +76,22 @@ func (s *Service) CreateTask(planID string, bucketID *string, title string, user
 	return task, nil
 }
 
+var validRecurrences = map[string]bool{"none": true, "daily": true, "weekly": true, "monthly": true}
+
 func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID string) (*core.Task, error) {
 	task, err := s.repo.FindByID(id)
 	if err != nil {
 		return nil, err
 	}
+	wasCompleted := task.CompletedAt != nil
 	if v, ok := updates["title"].(string); ok {
 		task.Title = v
 	}
 	if v, ok := updates["priority"].(string); ok {
 		task.Priority = v
+	}
+	if v, ok := updates["recurrence"].(string); ok && validRecurrences[v] {
+		task.Recurrence = v
 	}
 	if v, ok := updates["richTextNotes"].(string); ok {
 		task.RichTextNotes = v
@@ -131,7 +137,61 @@ func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID s
 		Payload: task,
 		UserID:  userID,
 	})
+	if !wasCompleted && task.CompletedAt != nil && task.Recurrence != "none" {
+		// Errors here intentionally don't fail the update the user asked
+		// for — completing the task is the primary action, spinning off
+		// the next occurrence is a side effect of it.
+		s.spinOffRecurrence(task, userID)
+	}
 	return task, nil
+}
+
+// spinOffRecurrence creates the next occurrence of a just-completed
+// recurring task: same plan/bucket/title/priority/recurrence/assignees, a
+// due date advanced by one recurrence interval from the completed task's
+// due date (or from now, if it had none), and a clean slate otherwise
+// (no checklist items, comments, attachments, or labels carried over).
+func (s *Service) spinOffRecurrence(completed *core.Task, userID string) {
+	next := &core.Task{
+		ID:         uuid.New().String(),
+		PlanID:     completed.PlanID,
+		BucketID:   completed.BucketID,
+		Title:      completed.Title,
+		Priority:   completed.Priority,
+		Recurrence: completed.Recurrence,
+		DueDate:    nextDueDate(completed.DueDate, completed.Recurrence),
+		CreatedBy:  completed.CreatedBy,
+	}
+	if err := s.repo.Create(next); err != nil {
+		return
+	}
+	s.repo.CopyAssignees(completed.ID, next.ID)
+	annotate(next)
+	s.eventBus.Publish(next.PlanID, core.PlanEvent{
+		Type:    core.EventTaskCreated,
+		PlanID:  next.PlanID,
+		Payload: next,
+		UserID:  userID,
+	})
+}
+
+func nextDueDate(current *time.Time, recurrence string) *time.Time {
+	base := time.Now()
+	if current != nil {
+		base = *current
+	}
+	var next time.Time
+	switch recurrence {
+	case "daily":
+		next = base.AddDate(0, 0, 1)
+	case "weekly":
+		next = base.AddDate(0, 0, 7)
+	case "monthly":
+		next = base.AddDate(0, 1, 0)
+	default:
+		return nil
+	}
+	return &next
 }
 
 // recomputeProgress derives a task's progress percentage from its checklist
