@@ -281,6 +281,24 @@ func (h *Handler) ReorderTasks(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// One event per reordered task, mirroring how CreateTask/UpdateTask
+	// already publish the full annotated task. A single drag can touch
+	// every task in the plan (positions are renumbered per-bucket on every
+	// move — see BoardView.handleDragEnd), so this is one query per moved
+	// task; that's an existing cost of this endpoint's semantics, not a
+	// regression this change introduces.
+	for _, item := range items {
+		task, err := h.service.GetTask(item.ID)
+		if err != nil {
+			continue
+		}
+		h.service.eventBus.Publish(planID, core.PlanEvent{
+			Type:    core.EventTaskUpdated,
+			PlanID:  planID,
+			Payload: task,
+		})
+	}
 	c.JSON(http.StatusOK, gin.H{"status": "reordered"})
 }
 
