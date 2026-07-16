@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2, Repeat } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import { PRIORITY_COLORS, STATUS_COLORS, STATUS_LABELS, STYLES } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
@@ -35,6 +36,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const { updateTask, addAssignee: addAssigneeToContext, removeAssignee: removeAssigneeFromContext, deleteTask } = usePlanTasks();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -109,7 +111,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
 
   const handleUpdate = async (updates: any) => {
     try {
-      const updated = await api.tasks.update(taskId, updates);
+      const updated = await updateTask(taskId!, updates);
       setTask((prev: any) => ({ ...prev, ...updated }));
     } catch (e) {
       /* silently fail */
@@ -154,7 +156,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
       return;
     }
     try {
-      await api.tasks.addAssignee(taskId!, user.userId);
+      await addAssigneeToContext(taskId!, user);
       setTask((prev: any) => ({
         ...prev,
         assignees: [...currentAssignees, user],
@@ -168,7 +170,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
 
   const handleRemoveAssignee = async (userId: string) => {
     try {
-      await api.tasks.removeAssignee(taskId!, userId);
+      await removeAssigneeFromContext(taskId!, userId);
       setTask((prev: any) => ({
         ...prev,
         assignees: (prev.assignees || []).filter((a: any) => a.userId !== userId),
@@ -190,7 +192,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
   const handleDeleteConfirm = async () => {
     if (!taskId) return;
     try {
-      await api.tasks.delete(taskId);
+      await deleteTask(taskId);
       setDeleteError(null);
       onTaskDeleted?.(taskId);
       onClose();
