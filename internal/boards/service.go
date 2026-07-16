@@ -100,8 +100,14 @@ func (s *Service) MoveBucket(planID, id, direction string) error {
 		return err
 	}
 	s.eventBus.Publish(planID, core.PlanEvent{
-		Type:   core.EventBucketUpdated,
-		PlanID: planID,
+		Type:    core.EventBucketUpdated,
+		PlanID:  planID,
+		Payload: map[string]interface{}{"id": buckets[idx].ID, "position": posB},
+	})
+	s.eventBus.Publish(planID, core.PlanEvent{
+		Type:    core.EventBucketUpdated,
+		PlanID:  planID,
+		Payload: map[string]interface{}{"id": buckets[swapIdx].ID, "position": posA},
 	})
 	return nil
 }
