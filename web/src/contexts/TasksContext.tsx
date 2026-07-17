@@ -189,11 +189,19 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     [activePlanId, refetch],
   );
 
+  // bucket.updated (e.g. from MoveBucket) patches a bucket's `position` in
+  // place without reordering the array — sort here so every consumer sees
+  // column order reflect the latest position, not just the tab that
+  // triggered the move (which reorders via its own refetch instead).
+  const sortedBuckets = [...state.buckets].sort(
+    (a, b) => (a.position ?? 0) - (b.position ?? 0),
+  );
+
   return (
     <TasksContext.Provider
       value={{
         tasks: state.tasks,
-        buckets: state.buckets,
+        buckets: sortedBuckets,
         loading,
         refetch,
         createTask,
