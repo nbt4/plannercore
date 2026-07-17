@@ -393,6 +393,7 @@ func (h *Handler) AddAssignee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.publishTaskUpdated(c.Param("taskId"))
 	c.JSON(http.StatusCreated, assignee)
 }
 
@@ -402,7 +403,25 @@ func (h *Handler) RemoveAssignee(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	h.publishTaskUpdated(c.Param("taskId"))
 	c.JSON(http.StatusOK, gin.H{"status": "removed"})
+}
+
+// publishTaskUpdated re-fetches the full annotated task and publishes it as
+// a task.updated event, mirroring how CreateTask/UpdateTask/ReorderTasks
+// already notify other tabs of a change. A failed re-fetch is not surfaced
+// to the caller: the assignee mutation itself already succeeded and
+// returned 2xx, so it doesn't need to be aborted over a live-sync miss.
+func (h *Handler) publishTaskUpdated(taskID string) {
+	task, err := h.service.GetTask(taskID)
+	if err != nil {
+		return
+	}
+	h.service.eventBus.Publish(task.PlanID, core.PlanEvent{
+		Type:    core.EventTaskUpdated,
+		PlanID:  task.PlanID,
+		Payload: task,
+	})
 }
 
 func (h *Handler) ListComments(c *gin.Context) {
