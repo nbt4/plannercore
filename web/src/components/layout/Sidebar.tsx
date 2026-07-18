@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun, LayoutDashboard } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,7 +10,7 @@ import { STYLES } from '../../lib/constants';
 export default function Sidebar() {
   const { plans, loading, refetch } = usePlans();
   const { activePlanId } = usePlanContext();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [showNewInput, setShowNewInput] = useState(false);
   const [newName, setNewName] = useState('');
@@ -35,6 +35,11 @@ export default function Sidebar() {
   const handleCancelNew = () => {
     setShowNewInput(false);
     setNewName('');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   return (
@@ -267,6 +272,9 @@ export default function Sidebar() {
       {user && (
         <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
           Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.username}</strong>
+          <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', width: '100%', marginTop: 'var(--space-2)', padding: 'var(--space-2) 0', border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--text-xs)' }}>
+            <LogOut size={14} /> Abmelden
+          </button>
         </div>
       )}
     </aside>
