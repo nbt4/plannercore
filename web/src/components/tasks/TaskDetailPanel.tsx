@@ -104,6 +104,21 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     return () => document.removeEventListener('mousedown', handleClick);
   }, [menuOpen]);
 
+  // Allow the task detail panel to be dismissed without reaching for the close button.
+  // Leave Escape handling to focused form controls so, for example, title editing can
+  // still be cancelled without closing the whole panel.
+  useEffect(() => {
+    if (!taskId) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [taskId, onClose]);
+
   // Load buckets and labels
   useEffect(() => {
     if (planId && planId !== 'new') {
