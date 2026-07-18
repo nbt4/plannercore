@@ -34,6 +34,15 @@ export const api = {
       request<any>(`${BASE}/plans/${id}/copy`, { method: 'POST' }),
     toggleFavorite: (id: string) =>
       request<any>(`${BASE}/plans/${id}/favorite`, { method: 'POST' }),
+    members: (id: string) => request<any[]>(`${BASE}/plans/${id}/members`),
+    addMember: (id: string, userId: string) =>
+      request<any>(`${BASE}/plans/${id}/members`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      }),
+    removeMember: (id: string, userId: string) =>
+      request<void>(`${BASE}/plans/${id}/members/${userId}`, { method: 'DELETE' }),
   },
 
   buckets: {

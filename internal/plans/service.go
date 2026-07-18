@@ -1,9 +1,15 @@
 package plans
 
 import (
+	"errors"
 	"plannercore/internal/core"
 
 	"github.com/google/uuid"
+)
+
+var (
+	ErrNotOwner     = errors.New("only plan owners can manage members")
+	ErrUserNotFound = errors.New("active user not found")
 )
 
 type Service struct {
@@ -64,4 +70,37 @@ func (s *Service) CopyPlan(id, userID string) (*core.Plan, error) {
 		return nil, err
 	}
 	return s.repo.FindByID(newID)
+}
+
+func (s *Service) ListMembers(planID string) ([]MemberView, error) {
+	return s.repo.ListMembers(planID)
+}
+
+func (s *Service) AddMember(planID, ownerID, userID string) error {
+	owner, err := s.repo.IsOwner(planID, ownerID)
+	if err != nil {
+		return err
+	}
+	if !owner {
+		return ErrNotOwner
+	}
+	active, err := s.repo.UserIsActive(userID)
+	if err != nil {
+		return err
+	}
+	if !active {
+		return ErrUserNotFound
+	}
+	return s.repo.AddMember(planID, userID)
+}
+
+func (s *Service) RemoveMember(planID, ownerID, userID string) error {
+	owner, err := s.repo.IsOwner(planID, ownerID)
+	if err != nil {
+		return err
+	}
+	if !owner {
+		return ErrNotOwner
+	}
+	return s.repo.RemoveMember(planID, userID)
 }

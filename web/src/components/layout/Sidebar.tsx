@@ -3,12 +3,14 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { Plus, Star, ClipboardList, Sun, LayoutDashboard } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/plannerApi';
 import { STYLES } from '../../lib/constants';
 
 export default function Sidebar() {
   const { plans, loading, refetch } = usePlans();
   const { activePlanId } = usePlanContext();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [showNewInput, setShowNewInput] = useState(false);
   const [newName, setNewName] = useState('');
@@ -261,6 +263,12 @@ export default function Sidebar() {
           </button>
         )}
       </div>
+
+      {user && (
+        <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+          Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.username}</strong>
+        </div>
+      )}
     </aside>
   );
 }
