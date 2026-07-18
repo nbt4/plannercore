@@ -18,25 +18,84 @@ func NewService(repo *Repository, eventBus *core.EventBus) *Service {
 	return &Service{repo: repo, eventBus: eventBus}
 }
 
-// annotate populates a task's computed Status/IsLate fields before it's
-// returned to a caller. Every service method that returns Task(s) must
-// route through this (or annotateAll) — the fields are gorm:"-" so they're
-// otherwise left zero-valued straight out of the repository.
-func annotate(task *core.Task) *core.Task {
+// annotate populates a task's computed Status/IsLate fields, and hydrates
+// its assignees' display data, before it's returned to a caller. Every
+// service method that returns Task(s) must route through this (or
+// annotateAll) — Status/IsLate/assignee display fields are all gorm:"-",
+// so they're otherwise left zero-valued straight out of the repository.
+func (s *Service) annotate(task *core.Task) *core.Task {
 	if task == nil {
 		return task
 	}
 	task.Status = task.ComputedStatus()
 	task.IsLate = task.ComputeIsLate()
+	s.hydrateAssignees([]core.Task{*task})
 	return task
 }
 
-func annotateAll(tasks []core.Task) []core.Task {
+func (s *Service) annotateAll(tasks []core.Task) []core.Task {
 	for i := range tasks {
 		tasks[i].Status = tasks[i].ComputedStatus()
 		tasks[i].IsLate = tasks[i].ComputeIsLate()
 	}
+	s.hydrateAssignees(tasks)
 	return tasks
+}
+
+// assigneeInfoRow is a scratch scan target for hydrateAssignees' batched
+// lookup — never persisted, exists only to receive the joined columns.
+type assigneeInfoRow struct {
+	UserID    string
+	Username  string
+	Email     string
+	AvatarURL string
+}
+
+// hydrateAssignees looks up username/email/avatarUrl for every distinct
+// assignee across the given tasks in a single query, and writes them onto
+// each TaskAssignee's display fields in place. Best-effort: a lookup
+// failure leaves display fields blank rather than failing the caller — the
+// task data itself already loaded successfully, which is what matters most.
+// users.userid is an integer column; TaskAssignee.UserID stores its string
+// form (e.g. "42"), so the join key is cast to text to match.
+func (s *Service) hydrateAssignees(tasks []core.Task) {
+	ids := map[string]bool{}
+	for _, t := range tasks {
+		for _, a := range t.Assignees {
+			ids[a.UserID] = true
+		}
+	}
+	if len(ids) == 0 {
+		return
+	}
+	idList := make([]string, 0, len(ids))
+	for id := range ids {
+		idList = append(idList, id)
+	}
+
+	var rows []assigneeInfoRow
+	err := s.repo.db.Table("users").
+		Select("CAST(users.userid AS TEXT) AS user_id, users.username, users.email, user_profiles.avatar_url").
+		Joins("LEFT JOIN user_profiles ON user_profiles.user_id = users.userid").
+		Where("CAST(users.userid AS TEXT) IN ?", idList).
+		Scan(&rows).Error
+	if err != nil {
+		return
+	}
+
+	info := make(map[string]assigneeInfoRow, len(rows))
+	for _, r := range rows {
+		info[r.UserID] = r
+	}
+	for ti := range tasks {
+		for ai := range tasks[ti].Assignees {
+			if r, ok := info[tasks[ti].Assignees[ai].UserID]; ok {
+				tasks[ti].Assignees[ai].Username = r.Username
+				tasks[ti].Assignees[ai].Email = r.Email
+				tasks[ti].Assignees[ai].AvatarURL = r.AvatarURL
+			}
+		}
+	}
 }
 
 func (s *Service) ListTasks(planID, bucketID, labelID, assigneeID string) ([]core.Task, error) {
@@ -44,7 +103,7 @@ func (s *Service) ListTasks(planID, bucketID, labelID, assigneeID string) ([]cor
 	if err != nil {
 		return nil, err
 	}
-	return annotateAll(tasks), nil
+	return s.annotateAll(tasks), nil
 }
 
 func (s *Service) GetTask(id string) (*core.Task, error) {
@@ -52,7 +111,7 @@ func (s *Service) GetTask(id string) (*core.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return annotate(task), nil
+	return s.annotate(task), nil
 }
 
 func (s *Service) CreateTask(planID string, bucketID *string, title string, userID string) (*core.Task, error) {
@@ -66,7 +125,7 @@ func (s *Service) CreateTask(planID string, bucketID *string, title string, user
 	if err := s.repo.Create(task); err != nil {
 		return nil, err
 	}
-	annotate(task)
+	s.annotate(task)
 	s.eventBus.Publish(planID, core.PlanEvent{
 		Type:    core.EventTaskCreated,
 		PlanID:  planID,
@@ -130,7 +189,7 @@ func (s *Service) UpdateTask(id string, updates map[string]interface{}, userID s
 	if err := s.repo.Update(task); err != nil {
 		return nil, err
 	}
-	annotate(task)
+	s.annotate(task)
 	s.eventBus.Publish(task.PlanID, core.PlanEvent{
 		Type:    core.EventTaskUpdated,
 		PlanID:  task.PlanID,
@@ -166,7 +225,7 @@ func (s *Service) spinOffRecurrence(completed *core.Task, userID string) {
 		return
 	}
 	s.repo.CopyAssignees(completed.ID, next.ID)
-	annotate(next)
+	s.annotate(next)
 	s.eventBus.Publish(next.PlanID, core.PlanEvent{
 		Type:    core.EventTaskCreated,
 		PlanID:  next.PlanID,
@@ -216,7 +275,7 @@ func (s *Service) recomputeProgress(taskID string) error {
 	if err := s.repo.Update(task); err != nil {
 		return err
 	}
-	annotate(task)
+	s.annotate(task)
 	s.eventBus.Publish(task.PlanID, core.PlanEvent{
 		Type:    core.EventTaskUpdated,
 		PlanID:  task.PlanID,
@@ -247,7 +306,7 @@ func (s *Service) GetMyTasks(userID string) ([]core.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return annotateAll(tasks), nil
+	return s.annotateAll(tasks), nil
 }
 
 func (s *Service) GetMyDay(userID string) ([]core.Task, error) {
@@ -255,7 +314,7 @@ func (s *Service) GetMyDay(userID string) ([]core.Task, error) {
 	if err != nil {
 		return nil, err
 	}
-	return annotateAll(tasks), nil
+	return s.annotateAll(tasks), nil
 }
 
 func (s *Service) AddToMyDay(userID, taskID string) error {
