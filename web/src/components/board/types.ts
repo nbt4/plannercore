@@ -9,7 +9,7 @@ export interface TaskCardData {
   bucketId?: string;
   position?: number;
   labels?: { id: string; name: string; color: string }[];
-  assignees?: { userId: string }[];
+  assignees?: { userId: string; username?: string; avatarUrl?: string }[];
   checklistCompletedCount?: number;
   checklistTotalCount?: number;
 }
