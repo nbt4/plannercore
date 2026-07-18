@@ -13,7 +13,10 @@ interface TasksContextValue {
   updateTask: (taskId: string, updates: any) => Promise<any>;
   deleteTask: (taskId: string) => Promise<void>;
   reorderTask: (items: { id: string; bucketId: string; position: number }[]) => Promise<void>;
-  addAssignee: (taskId: string, user: { userId: string; username: string }) => Promise<void>;
+  addAssignee: (
+    taskId: string,
+    user: { userId: string; username: string; email?: string; avatarUrl?: string },
+  ) => Promise<void>;
   removeAssignee: (taskId: string, userId: string) => Promise<void>;
   createBucket: (name: string) => Promise<any>;
   updateBucket: (bucketId: string, name: string) => Promise<void>;
@@ -127,15 +130,21 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     [activePlanId, refetch],
   );
 
-  const addAssignee = useCallback(async (taskId: string, user: { userId: string; username: string }) => {
-    await api.tasks.addAssignee(taskId, user.userId);
-    setState((prev) => ({
-      ...prev,
-      tasks: prev.tasks.map((t) =>
-        t.id === taskId ? { ...t, assignees: [...(t.assignees || []), user] } : t,
-      ),
-    }));
-  }, []);
+  const addAssignee = useCallback(
+    async (
+      taskId: string,
+      user: { userId: string; username: string; email?: string; avatarUrl?: string },
+    ) => {
+      await api.tasks.addAssignee(taskId, user.userId);
+      setState((prev) => ({
+        ...prev,
+        tasks: prev.tasks.map((t) =>
+          t.id === taskId ? { ...t, assignees: [...(t.assignees || []), user] } : t,
+        ),
+      }));
+    },
+    [],
+  );
 
   const removeAssignee = useCallback(async (taskId: string, userId: string) => {
     await api.tasks.removeAssignee(taskId, userId);
