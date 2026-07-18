@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/',
+  base: '/planner/',
   define: {
     __DASHBOARD_URL__: JSON.stringify('/'),
   },
