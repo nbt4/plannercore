@@ -147,10 +147,18 @@ func (TaskLabel) TableName() string {
 	return "planner_task_labels"
 }
 
-// TaskAssignee is the join table between tasks and users.
+// TaskAssignee is the join table between tasks and users. Username, Email,
+// and AvatarURL are never persisted here (gorm:"-") — they're hydrated at
+// read time from the shared users/user_profiles tables by
+// tasks.Service.hydrateAssignees, so they always reflect the current
+// display name/avatar instead of going stale if a user's profile changes
+// after they were assigned.
 type TaskAssignee struct {
-	TaskID string `json:"taskId" gorm:"column:task_id;primaryKey"`
-	UserID string `json:"userId" gorm:"column:user_id;primaryKey"`
+	TaskID    string `json:"taskId" gorm:"column:task_id;primaryKey"`
+	UserID    string `json:"userId" gorm:"column:user_id;primaryKey"`
+	Username  string `json:"username" gorm:"-"`
+	Email     string `json:"email" gorm:"-"`
+	AvatarURL string `json:"avatarUrl" gorm:"-"`
 }
 
 func (TaskAssignee) TableName() string {
