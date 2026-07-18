@@ -13,7 +13,7 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue>({ user: null, loading: true, refetch: () => {} });
+const AuthContext = createContext<AuthContextValue>({ user: null, loading: true, refetch: () => {}, logout: async () => {} });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
