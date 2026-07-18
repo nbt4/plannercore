@@ -92,7 +92,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.1.0")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.5")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Login/Logout (same logic as cores-dashboard)
@@ -168,42 +168,35 @@ func main() {
 	// blank when a user has no profile row yet).
 	api.GET("/users", func(c *gin.Context) {
 		q := c.Query("q")
-		query := db.Where("is_active = ?", true)
+		type userSuggestion struct {
+			UserID      uint
+			Username    string
+			Email       string
+			DisplayName string
+			AvatarURL   string
+		}
+		query := db.Table("users u").
+			Select("u.userid AS user_id, u.username, u.email, COALESCE(NULLIF(p.display_name, ''), NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username) AS display_name, COALESCE(p.avatar_url, '') AS avatar_url").
+			Joins("LEFT JOIN user_profiles p ON p.user_id = u.userid").
+			Where("u.is_active = ?", true)
 		if q != "" {
 			like := "%" + q + "%"
-			query = query.Where("username ILIKE ? OR email ILIKE ?", like, like)
+			query = query.Where("u.username ILIKE ? OR u.email ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR p.display_name ILIKE ?", like, like, like, like, like)
 		}
-		var users []auth.User
-		if err := query.Order("username ASC").Limit(20).Find(&users).Error; err != nil {
+		var users []userSuggestion
+		if err := query.Order("display_name ASC, u.username ASC").Limit(20).Scan(&users).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
-		}
-		avatarByUserID := map[string]string{}
-		if len(users) > 0 {
-			ids := make([]string, len(users))
-			for i, u := range users {
-				ids[i] = fmt.Sprintf("%d", u.UserID)
-			}
-			var profiles []struct {
-				UserID    string
-				AvatarURL string
-			}
-			db.Table("user_profiles").
-				Select("CAST(user_id AS TEXT) AS user_id, COALESCE(avatar_url, '') AS avatar_url").
-				Where("CAST(user_id AS TEXT) IN ?", ids).
-				Scan(&profiles)
-			for _, p := range profiles {
-				avatarByUserID[p.UserID] = p.AvatarURL
-			}
 		}
 		result := make([]gin.H, len(users))
 		for i, u := range users {
 			userID := fmt.Sprintf("%d", u.UserID)
 			result[i] = gin.H{
-				"userId":    userID,
-				"username":  u.Username,
-				"email":     u.Email,
-				"avatarUrl": avatarByUserID[userID],
+				"userId":      userID,
+				"displayName": u.DisplayName,
+				"username":    u.Username,
+				"email":       u.Email,
+				"avatarUrl":   u.AvatarURL,
 			}
 		}
 		c.JSON(http.StatusOK, result)

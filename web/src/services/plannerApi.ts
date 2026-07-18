@@ -172,7 +172,7 @@ export const api = {
 
   users: {
     search: (q: string) =>
-      request<{ userId: string; username: string; email: string; avatarUrl: string }[]>(
+      request<{ userId: string; displayName: string; username: string; email: string; avatarUrl: string }[]>(
         `${BASE}/users${q ? `?q=${encodeURIComponent(q)}` : ''}`,
       ),
   },

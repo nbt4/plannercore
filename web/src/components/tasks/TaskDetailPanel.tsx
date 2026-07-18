@@ -34,7 +34,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
   const [labels, setLabels] = useState<any[]>([]);
   const [assigneeInput, setAssigneeInput] = useState('');
   const [assigneeSuggestions, setAssigneeSuggestions] = useState<
-    { userId: string; username: string; email?: string; avatarUrl?: string }[]
+    { userId: string; displayName: string; username: string; email?: string; avatarUrl?: string }[]
   >([]);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -170,6 +170,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
 
   const handleAddAssignee = async (user: {
     userId: string;
+    displayName: string;
     username: string;
     email?: string;
     avatarUrl?: string;
@@ -701,9 +702,9 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                         fontSize: 'var(--text-xs)',
                       }}
                     >
-                      <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
+                      <Avatar username={a.displayName || a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
                       <span style={{ color: 'var(--text-primary)' }}>
-                        {a.username || a.userId}
+                        {a.displayName || a.username || a.userId}
                       </span>
                       <button
                         onClick={() => handleRemoveAssignee(a.userId)}
@@ -790,9 +791,9 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                               textAlign: 'left',
                             }}
                           >
-                            <Avatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
+                            <Avatar username={u.displayName || u.username} avatarUrl={u.avatarUrl} size="sm" />
                             <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span>{u.username}</span>
+                              <span style={{ fontWeight: 600 }}>{u.displayName || u.username}</span>
                               {u.email && (
                                 <span
                                   style={{

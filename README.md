@@ -14,7 +14,7 @@
 - **Sprint-Planung** — Agile Sprint-Verwaltung mit Backlog, Task-Zuweisung und Sprint-Dauer
 - **Goals** — OKR-ähnliche Zielverwaltung mit Fortschrittsanzeige
 - **People View** — Team-Auslastung und Kapazitätsplanung
-- **Bearbeiter-Picker** — Suche mit E-Mail, echten Profilbildern und Tastatursteuerung; Namen und Avatare bleiben nach Reload erhalten
+- **Bearbeiter-Picker** — Outlook-artige Suche mit großem Anzeigenamen, kleiner E-Mail-Zeile, Profilbild und Tastatursteuerung; Anzeigenamen bleiben nach Reload erhalten
 - **Persönliche Ansichten** — „Meine Aufgaben" (aggregiert) und „Mein Tag" (tägliche Fokus-Ansicht)
 - **Echtzeit-Kollaboration** — WebSocket-basierte Live-Updates für alle Board-Änderungen
 - **Integration Links** — Verknüpfung von Aufgaben mit RentalCore-Jobs und WarehouseCore-Devices
@@ -103,7 +103,7 @@ Frontend Dev-Server: `http://localhost:3003` (proxied API zu Backend `:8080`)
 | `POST`  | `/api/v1/auth/login`       | Benutzer-Login                           |
 | `POST`  | `/api/v1/auth/logout`      | Session beenden                          |
 | `GET`   | `/api/v1/planner/me`       | Aktuellen Benutzer abrufen (🔒)           |
-| `GET`   | `/api/v1/planner/users?q=` | Aktive Benutzer inkl. E-Mail/Avatar suchen (🔒) |
+| `GET`   | `/api/v1/planner/users?q=` | Aktive Benutzer inkl. Anzeigename, E-Mail und Avatar suchen (🔒) |
 
 ### Pläne
 
@@ -229,7 +229,7 @@ plannercore/
 
 ## Login
 
-Plannercore teilt die User-Datenbank mit RentalCore und WarehouseCore. Der Login erfolgt über den bestehenden `session_id` Cookie, der vom cores-dashboard oder direkt ausgestellt wird.
+Plannercore teilt die User-Datenbank mit dem Cores-Dashboard, RentalCore und WarehouseCore. Lokale und aus Microsoft Entra synchronisierte Benutzer stehen gleichermaßen als Bearbeiter zur Verfügung. Der Picker und alle Task-Antworten verwenden den zentralen Profil-Anzeigenamen statt Benutzername oder numerischer ID. Der Login erfolgt über den bestehenden Cores-JWT-Cookie.
 
 Default-Credentials: `admin` / `admin` (Passwortänderung beim ersten Login erzwungen)
 

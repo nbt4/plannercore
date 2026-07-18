@@ -14,8 +14,8 @@ type Plan struct {
 	IsFavorite      bool       `json:"isFavorite" gorm:"column:is_favorite;default:false"`
 	IsTemplate      bool       `json:"isTemplate" gorm:"column:is_template;default:false"`
 	CreatedBy       string     `json:"createdBy" gorm:"column:created_by"`
-	CreatedAt       time.Time `json:"createdAt" gorm:"column:created_at;default:now()"`
-	UpdatedAt       time.Time `json:"updatedAt" gorm:"column:updated_at;default:now()"`
+	CreatedAt       time.Time  `json:"createdAt" gorm:"column:created_at;default:now()"`
+	UpdatedAt       time.Time  `json:"updatedAt" gorm:"column:updated_at;default:now()"`
 	ArchivedAt      *time.Time `json:"archivedAt" gorm:"column:archived_at"`
 	Buckets         []Bucket   `json:"buckets,omitempty" gorm:"foreignKey:PlanID"`
 	Labels          []Label    `json:"labels,omitempty" gorm:"foreignKey:PlanID"`
@@ -54,34 +54,34 @@ func (Bucket) TableName() string {
 
 // Task represents a task/card within a bucket.
 type Task struct {
-	ID                     string           `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
-	PlanID                 string           `json:"planId" gorm:"column:plan_id;index"`
-	BucketID               *string          `json:"bucketId" gorm:"column:bucket_id"`
-	Title                  string           `json:"title" gorm:"not null"`
-	RichTextNotes          string           `json:"richTextNotes" gorm:"column:rich_text_notes"`
-	Priority               string           `json:"priority" gorm:"default:'medium'"`
-	Recurrence             string           `json:"recurrence" gorm:"column:recurrence;default:'none'"`
-	Progress               int              `json:"progress" gorm:"default:0;check:progress >= 0 AND progress <= 100"`
-	StartDate              *time.Time       `json:"startDate" gorm:"column:start_date"`
-	DueDate                *time.Time       `json:"dueDate" gorm:"column:due_date"`
-	CompletedAt            *time.Time       `json:"completedAt" gorm:"column:completed_at"`
-	Position               float64          `json:"position" gorm:"not null;default:0"`
+	ID                      string          `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	PlanID                  string          `json:"planId" gorm:"column:plan_id;index"`
+	BucketID                *string         `json:"bucketId" gorm:"column:bucket_id"`
+	Title                   string          `json:"title" gorm:"not null"`
+	RichTextNotes           string          `json:"richTextNotes" gorm:"column:rich_text_notes"`
+	Priority                string          `json:"priority" gorm:"default:'medium'"`
+	Recurrence              string          `json:"recurrence" gorm:"column:recurrence;default:'none'"`
+	Progress                int             `json:"progress" gorm:"default:0;check:progress >= 0 AND progress <= 100"`
+	StartDate               *time.Time      `json:"startDate" gorm:"column:start_date"`
+	DueDate                 *time.Time      `json:"dueDate" gorm:"column:due_date"`
+	CompletedAt             *time.Time      `json:"completedAt" gorm:"column:completed_at"`
+	Position                float64         `json:"position" gorm:"not null;default:0"`
 	ChecklistCompletedCount int             `json:"checklistCompletedCount" gorm:"column:checklist_completed_count;default:0"`
-	ChecklistTotalCount    int              `json:"checklistTotalCount" gorm:"column:checklist_total_count;default:0"`
-	CreatedBy              string           `json:"createdBy" gorm:"column:created_by"`
-	CreatedAt              time.Time        `json:"createdAt" gorm:"column:created_at;default:now()"`
-	UpdatedAt              time.Time        `json:"updatedAt" gorm:"column:updated_at;default:now()"`
-	Assignees              []TaskAssignee   `json:"assignees" gorm:"foreignKey:TaskID"`
-	ChecklistItems         []ChecklistItem  `json:"checklistItems" gorm:"foreignKey:TaskID"`
-	Labels                 []TaskLabel      `json:"labels" gorm:"foreignKey:TaskID"`
-	Comments               []Comment        `json:"comments" gorm:"foreignKey:TaskID"`
-	Attachments            []Attachment     `json:"attachments" gorm:"foreignKey:TaskID"`
+	ChecklistTotalCount     int             `json:"checklistTotalCount" gorm:"column:checklist_total_count;default:0"`
+	CreatedBy               string          `json:"createdBy" gorm:"column:created_by"`
+	CreatedAt               time.Time       `json:"createdAt" gorm:"column:created_at;default:now()"`
+	UpdatedAt               time.Time       `json:"updatedAt" gorm:"column:updated_at;default:now()"`
+	Assignees               []TaskAssignee  `json:"assignees" gorm:"foreignKey:TaskID"`
+	ChecklistItems          []ChecklistItem `json:"checklistItems" gorm:"foreignKey:TaskID"`
+	Labels                  []TaskLabel     `json:"labels" gorm:"foreignKey:TaskID"`
+	Comments                []Comment       `json:"comments" gorm:"foreignKey:TaskID"`
+	Attachments             []Attachment    `json:"attachments" gorm:"foreignKey:TaskID"`
 
 	// Status and IsLate are computed, not stored — derived from
 	// StartDate/CompletedAt/DueDate by ComputedStatus/ComputeIsLate and
 	// populated by the tasks service before a Task is returned to a client.
-	Status                 string           `json:"status" gorm:"-"`
-	IsLate                 bool             `json:"isLate" gorm:"-"`
+	Status string `json:"status" gorm:"-"`
+	IsLate bool   `json:"isLate" gorm:"-"`
 }
 
 // ComputedStatus derives a three-state status (matching Microsoft Planner's
@@ -147,18 +147,19 @@ func (TaskLabel) TableName() string {
 	return "planner_task_labels"
 }
 
-// TaskAssignee is the join table between tasks and users. Username, Email,
-// and AvatarURL are never persisted here (gorm:"-") — they're hydrated at
+// TaskAssignee is the join table between tasks and users. DisplayName,
+// Username, Email, and AvatarURL are never persisted here (gorm:"-") — they're hydrated at
 // read time from the shared users/user_profiles tables by
 // tasks.Service.hydrateAssignees, so they always reflect the current
 // display name/avatar instead of going stale if a user's profile changes
 // after they were assigned.
 type TaskAssignee struct {
-	TaskID    string `json:"taskId" gorm:"column:task_id;primaryKey"`
-	UserID    string `json:"userId" gorm:"column:user_id;primaryKey"`
-	Username  string `json:"username" gorm:"-"`
-	Email     string `json:"email" gorm:"-"`
-	AvatarURL string `json:"avatarUrl" gorm:"-"`
+	TaskID      string `json:"taskId" gorm:"column:task_id;primaryKey"`
+	UserID      string `json:"userId" gorm:"column:user_id;primaryKey"`
+	DisplayName string `json:"displayName" gorm:"-"`
+	Username    string `json:"username" gorm:"-"`
+	Email       string `json:"email" gorm:"-"`
+	AvatarURL   string `json:"avatarUrl" gorm:"-"`
 }
 
 func (TaskAssignee) TableName() string {
@@ -196,11 +197,11 @@ func (Attachment) TableName() string {
 
 // Dependency represents a task dependency relationship.
 type Dependency struct {
-	ID             string      `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
-	PredecessorID  string      `json:"predecessorId" gorm:"column:predecessor_id;index"`
-	SuccessorID    string      `json:"successorId" gorm:"column:successor_id;index"`
-	DependencyType string      `json:"dependencyType" gorm:"column:dependency_type;default:'finish-to-start'"`
-	Lag            string      `json:"lag" gorm:"default:'0'"`
+	ID             string `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	PredecessorID  string `json:"predecessorId" gorm:"column:predecessor_id;index"`
+	SuccessorID    string `json:"successorId" gorm:"column:successor_id;index"`
+	DependencyType string `json:"dependencyType" gorm:"column:dependency_type;default:'finish-to-start'"`
+	Lag            string `json:"lag" gorm:"default:'0'"`
 }
 
 func (Dependency) TableName() string {
@@ -235,14 +236,14 @@ func (SprintTask) TableName() string {
 
 // Goal represents a goal within a plan, optionally nested under a parent goal.
 type Goal struct {
-	ID           string     `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
-	PlanID       string     `json:"planId" gorm:"column:plan_id;index"`
-	ParentGoalID *string    `json:"parentGoalId" gorm:"column:parent_goal_id"`
-	Title        string     `json:"title" gorm:"not null"`
-	Description  string     `json:"description"`
-	Progress     int        `json:"progress" gorm:"default:0"`
-	Status       string     `json:"status" gorm:"default:'not-started'"`
-	CreatedAt    time.Time  `json:"createdAt" gorm:"column:created_at;default:now()"`
+	ID           string    `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	PlanID       string    `json:"planId" gorm:"column:plan_id;index"`
+	ParentGoalID *string   `json:"parentGoalId" gorm:"column:parent_goal_id"`
+	Title        string    `json:"title" gorm:"not null"`
+	Description  string    `json:"description"`
+	Progress     int       `json:"progress" gorm:"default:0"`
+	Status       string    `json:"status" gorm:"default:'not-started'"`
+	CreatedAt    time.Time `json:"createdAt" gorm:"column:created_at;default:now()"`
 }
 
 func (Goal) TableName() string {
@@ -251,12 +252,12 @@ func (Goal) TableName() string {
 
 // CustomField represents a custom field definition for a plan.
 type CustomField struct {
-	ID       string          `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
-	PlanID   string          `json:"planId" gorm:"column:plan_id;index"`
-	Name     string          `json:"name" gorm:"not null"`
-	FieldType string         `json:"fieldType" gorm:"column:field_type;not null"`
-	Choices  json.RawMessage `json:"choices" gorm:"type:jsonb"`
-	Position int             `json:"position" gorm:"default:0"`
+	ID        string          `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
+	PlanID    string          `json:"planId" gorm:"column:plan_id;index"`
+	Name      string          `json:"name" gorm:"not null"`
+	FieldType string          `json:"fieldType" gorm:"column:field_type;not null"`
+	Choices   json.RawMessage `json:"choices" gorm:"type:jsonb"`
+	Position  int             `json:"position" gorm:"default:0"`
 }
 
 func (CustomField) TableName() string {

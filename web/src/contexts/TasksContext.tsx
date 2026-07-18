@@ -15,7 +15,7 @@ interface TasksContextValue {
   reorderTask: (items: { id: string; bucketId: string; position: number }[]) => Promise<void>;
   addAssignee: (
     taskId: string,
-    user: { userId: string; username: string; email?: string; avatarUrl?: string },
+    user: { userId: string; displayName: string; username: string; email?: string; avatarUrl?: string },
   ) => Promise<void>;
   removeAssignee: (taskId: string, userId: string) => Promise<void>;
   createBucket: (name: string) => Promise<any>;
@@ -133,7 +133,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
   const addAssignee = useCallback(
     async (
       taskId: string,
-      user: { userId: string; username: string; email?: string; avatarUrl?: string },
+      user: { userId: string; displayName: string; username: string; email?: string; avatarUrl?: string },
     ) => {
       await api.tasks.addAssignee(taskId, user.userId);
       setState((prev) => ({

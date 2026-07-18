@@ -93,13 +93,16 @@ func (h *Handler) WorkloadChart(c *gin.Context) {
 		h.db.Model(&core.Task{}).
 			Where("plan_id = ? AND id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?) AND completed_at IS NOT NULL", planID, a.UserID).
 			Count(&completed)
-				h.db.Model(&core.Task{}).
-					Where("plan_id = ? AND id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?) AND completed_at IS NULL AND due_date < ?", planID, a.UserID, now).
-					Count(&overdue)
+		h.db.Model(&core.Task{}).
+			Where("plan_id = ? AND id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?) AND completed_at IS NULL AND due_date < ?", planID, a.UserID, now).
+			Count(&overdue)
 
-				// FIXED: use userid column instead of id
-				var username string
-				h.db.Table("users").Select("username").Where("userid = ?", a.UserID).Scan(&username)
+		// FIXED: use userid column instead of id
+		var username string
+		h.db.Table("users u").
+			Select("COALESCE(NULLIF(p.display_name, ''), NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''), u.username)").
+			Joins("LEFT JOIN user_profiles p ON p.user_id = u.userid").
+			Where("u.userid = ?", a.UserID).Scan(&username)
 
 		results = append(results, WorkloadChartResult{
 			UserID:         a.UserID,
@@ -114,8 +117,8 @@ func (h *Handler) WorkloadChart(c *gin.Context) {
 }
 
 type BurndownEntry struct {
-	Date          string `json:"date"`
-	TotalRemaining int64 `json:"totalRemaining"`
+	Date           string `json:"date"`
+	TotalRemaining int64  `json:"totalRemaining"`
 }
 
 func (h *Handler) BurndownChart(c *gin.Context) {

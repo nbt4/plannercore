@@ -40,7 +40,7 @@ export function assigneeOptionsFromTasks(
   const map = new Map<string, string>();
   tasks.forEach((t) => {
     (t.assignees || []).forEach((a: any) => {
-      if (!map.has(a.userId)) map.set(a.userId, a.username || a.userId);
+      if (!map.has(a.userId)) map.set(a.userId, a.displayName || a.username || a.userId);
     });
   });
   return Array.from(map.entries())

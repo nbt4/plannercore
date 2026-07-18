@@ -45,10 +45,11 @@ func (s *Service) annotateAll(tasks []core.Task) []core.Task {
 // assigneeInfoRow is a scratch scan target for hydrateAssignees' batched
 // lookup — never persisted, exists only to receive the joined columns.
 type assigneeInfoRow struct {
-	UserID    string
-	Username  string
-	Email     string
-	AvatarURL string
+	UserID      string
+	DisplayName string
+	Username    string
+	Email       string
+	AvatarURL   string
 }
 
 // hydrateAssignees looks up username/email/avatarUrl for every distinct
@@ -75,7 +76,7 @@ func (s *Service) hydrateAssignees(tasks []core.Task) {
 
 	var rows []assigneeInfoRow
 	err := s.repo.db.Table("users").
-		Select("CAST(users.userid AS TEXT) AS user_id, users.username, users.email, COALESCE(user_profiles.avatar_url, '') AS avatar_url").
+		Select("CAST(users.userid AS TEXT) AS user_id, COALESCE(NULLIF(user_profiles.display_name, ''), NULLIF(TRIM(CONCAT_WS(' ', users.first_name, users.last_name)), ''), users.username) AS display_name, users.username, users.email, COALESCE(user_profiles.avatar_url, '') AS avatar_url").
 		Joins("LEFT JOIN user_profiles ON user_profiles.user_id = users.userid").
 		Where("CAST(users.userid AS TEXT) IN ?", idList).
 		Scan(&rows).Error
@@ -90,6 +91,7 @@ func (s *Service) hydrateAssignees(tasks []core.Task) {
 	for ti := range tasks {
 		for ai := range tasks[ti].Assignees {
 			if r, ok := info[tasks[ti].Assignees[ai].UserID]; ok {
+				tasks[ti].Assignees[ai].DisplayName = r.DisplayName
 				tasks[ti].Assignees[ai].Username = r.Username
 				tasks[ti].Assignees[ai].Email = r.Email
 				tasks[ti].Assignees[ai].AvatarURL = r.AvatarURL

@@ -104,7 +104,7 @@ export default function GridView() {
           if ((task.assignees || []).length === 0) {
             addTo('__none__', 'Nicht zugewiesen', task);
           } else {
-            task.assignees.forEach((a: any) => addTo(a.userId, a.username || a.userId, task));
+            task.assignees.forEach((a: any) => addTo(a.userId, a.displayName || a.username || a.userId, task));
           }
           break;
         case 'priority':
@@ -268,7 +268,7 @@ export default function GridView() {
                 zIndex: arr.length - i,
               }}
             >
-              <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
+              <Avatar username={a.displayName || a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
             </div>
           ))}
           {(task.assignees || []).length > 3 && (
