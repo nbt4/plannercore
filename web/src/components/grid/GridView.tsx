@@ -268,7 +268,7 @@ export default function GridView() {
                 zIndex: arr.length - i,
               }}
             >
-              <Avatar username={a.username || a.userId} size="sm" />
+              <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
             </div>
           ))}
           {(task.assignees || []).length > 3 && (

@@ -125,7 +125,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
                   zIndex: task.assignees!.length - i,
                 }}
               >
-                <Avatar username={a.userId} size="sm" />
+                <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
               </div>
             ))}
             {task.assignees.length > 3 && (
