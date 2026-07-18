@@ -1,15 +1,18 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, Copy, Trash2, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Star, Copy, Trash2, Users, type LucideIcon } from 'lucide-react';
 import { usePlan } from '../../hooks/usePlans';
 import { usePlans } from '../../hooks/usePlans';
 import { api } from '../../services/plannerApi';
 import ViewSwitcher from './ViewSwitcher';
+import PlanMembersModal from './PlanMembersModal';
 
 export default function PlanHeader() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
   const plan = usePlan(planId || '');
   const { refetch } = usePlans();
+  const [membersOpen, setMembersOpen] = useState(false);
 
   const isNewPlan = !planId || planId === 'new';
 
@@ -134,9 +137,10 @@ export default function PlanHeader() {
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
         <IconButton onClick={handleCopy} title="Plan kopieren" icon={Copy} />
+        <IconButton onClick={() => setMembersOpen(true)} title="Plan teilen" icon={Users} />
         <IconButton onClick={handleDelete} title="Plan löschen" icon={Trash2} />
-        <IconButton onClick={() => {}} title="Mehr" icon={MoreHorizontal} />
       </div>
+      {planId && <PlanMembersModal planId={planId} open={membersOpen} onClose={() => setMembersOpen(false)} />}
     </header>
   );
 }

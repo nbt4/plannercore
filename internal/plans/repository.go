@@ -10,6 +10,15 @@ type Repository struct {
 	db *gorm.DB
 }
 
+type MemberView struct {
+	PlanID    string `json:"planId"`
+	UserID    string `json:"userId"`
+	Role      string `json:"role"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	AvatarURL string `json:"avatarUrl"`
+}
+
 func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
@@ -67,6 +76,38 @@ func (r *Repository) IsMember(planID, userID string) (bool, error) {
 	var count int64
 	err := r.db.Model(&core.Member{}).Where("plan_id = ? AND user_id = ?", planID, userID).Count(&count).Error
 	return count > 0, err
+}
+
+func (r *Repository) IsOwner(planID, userID string) (bool, error) {
+	var count int64
+	err := r.db.Model(&core.Member{}).Where("plan_id = ? AND user_id = ? AND role = ?", planID, userID, "owner").Count(&count).Error
+	return count > 0, err
+}
+
+func (r *Repository) ListMembers(planID string) ([]MemberView, error) {
+	var members []MemberView
+	err := r.db.Table("planner_members AS m").
+		Select("m.plan_id, m.user_id, m.role, u.username, u.email, COALESCE(p.avatar_url, '') AS avatar_url").
+		Joins("JOIN users AS u ON CAST(u.userid AS TEXT) = m.user_id").
+		Joins("LEFT JOIN user_profiles AS p ON CAST(p.user_id AS TEXT) = m.user_id").
+		Where("m.plan_id = ?", planID).
+		Order("CASE WHEN m.role = 'owner' THEN 0 ELSE 1 END, u.username ASC").
+		Scan(&members).Error
+	return members, err
+}
+
+func (r *Repository) UserIsActive(userID string) (bool, error) {
+	var count int64
+	err := r.db.Table("users").Where("userid = ? AND is_active = ?", userID, true).Count(&count).Error
+	return count > 0, err
+}
+
+func (r *Repository) AddMember(planID, userID string) error {
+	return r.db.Create(&core.Member{PlanID: planID, UserID: userID, Role: "member"}).Error
+}
+
+func (r *Repository) RemoveMember(planID, userID string) error {
+	return r.db.Where("plan_id = ? AND user_id = ? AND role <> ?", planID, userID, "owner").Delete(&core.Member{}).Error
 }
 
 func (r *Repository) Copy(originalID, newID, userID string) error {
