@@ -235,4 +235,4 @@ Default-Credentials: `admin` / `admin` (Passwortänderung beim ersten Login erzw
 
 ---
 
-[📦 Monorepo auf GitHub](https://github.com/nbt4/cores) | `nobentie/plannercore:latest`
+[Quellcode](https://github.com/nbt4/plannercore) | [Monorepo](https://github.com/nbt4/cores) | `nobentie/plannercore:latest`
