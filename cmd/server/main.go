@@ -164,6 +164,8 @@ func main() {
 	})
 
 	// Users endpoint - searches active cores users for assignee suggestions.
+	// avatarUrl comes from the shared user_profiles table (optional — left
+	// blank when a user has no profile row yet).
 	api.GET("/users", func(c *gin.Context) {
 		q := c.Query("q")
 		query := db.Where("is_active = ?", true)
@@ -176,9 +178,33 @@ func main() {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		avatarByUserID := map[string]string{}
+		if len(users) > 0 {
+			ids := make([]string, len(users))
+			for i, u := range users {
+				ids[i] = fmt.Sprintf("%d", u.UserID)
+			}
+			var profiles []struct {
+				UserID    string
+				AvatarURL string
+			}
+			db.Table("user_profiles").
+				Select("CAST(user_id AS TEXT) AS user_id, avatar_url").
+				Where("CAST(user_id AS TEXT) IN ?", ids).
+				Scan(&profiles)
+			for _, p := range profiles {
+				avatarByUserID[p.UserID] = p.AvatarURL
+			}
+		}
 		result := make([]gin.H, len(users))
 		for i, u := range users {
-			result[i] = gin.H{"userId": fmt.Sprintf("%d", u.UserID), "username": u.Username}
+			userID := fmt.Sprintf("%d", u.UserID)
+			result[i] = gin.H{
+				"userId":    userID,
+				"username":  u.Username,
+				"email":     u.Email,
+				"avatarUrl": avatarByUserID[userID],
+			}
 		}
 		c.JSON(http.StatusOK, result)
 	})
