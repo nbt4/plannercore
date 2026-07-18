@@ -10,6 +10,7 @@ interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
   refetch: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({ user: null, loading: true, refetch: () => {} });
@@ -20,6 +21,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [fetchId, setFetchId] = useState(0);
 
   const refetch = useCallback(() => setFetchId((n) => n + 1), []);
+
+  const logout = useCallback(async () => {
+    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
+    setUser(null);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -46,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [fetchId]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refetch }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, loading, refetch, logout }}>{children}</AuthContext.Provider>
   );
 }
 
