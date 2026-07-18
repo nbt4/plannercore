@@ -28,9 +28,9 @@ import (
 	"plannercore/internal/websocket"
 
 	"github.com/gin-contrib/cors"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -189,7 +189,7 @@ func main() {
 				AvatarURL string
 			}
 			db.Table("user_profiles").
-				Select("CAST(user_id AS TEXT) AS user_id, avatar_url").
+				Select("CAST(user_id AS TEXT) AS user_id, COALESCE(avatar_url, '') AS avatar_url").
 				Where("CAST(user_id AS TEXT) IN ?", ids).
 				Scan(&profiles)
 			for _, p := range profiles {

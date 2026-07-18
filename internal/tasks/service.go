@@ -75,7 +75,7 @@ func (s *Service) hydrateAssignees(tasks []core.Task) {
 
 	var rows []assigneeInfoRow
 	err := s.repo.db.Table("users").
-		Select("CAST(users.userid AS TEXT) AS user_id, users.username, users.email, user_profiles.avatar_url").
+		Select("CAST(users.userid AS TEXT) AS user_id, users.username, users.email, COALESCE(user_profiles.avatar_url, '') AS avatar_url").
 		Joins("LEFT JOIN user_profiles ON user_profiles.user_id = users.userid").
 		Where("CAST(users.userid AS TEXT) IN ?", idList).
 		Scan(&rows).Error
