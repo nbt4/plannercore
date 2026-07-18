@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, Calendar, Users as UsersIcon, Columns3, Tags, MoreHorizontal, Trash2, Repeat } from 'lucide-react';
+import { nextHighlightedIndex } from '../../lib/pickerNavigation';
 import { api } from '../../services/plannerApi';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePlanTasks } from '../../contexts/TasksContext';
@@ -32,7 +33,10 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
   const [buckets, setBuckets] = useState<any[]>([]);
   const [labels, setLabels] = useState<any[]>([]);
   const [assigneeInput, setAssigneeInput] = useState('');
-  const [assigneeSuggestions, setAssigneeSuggestions] = useState<{ userId: string; username: string }[]>([]);
+  const [assigneeSuggestions, setAssigneeSuggestions] = useState<
+    { userId: string; username: string; email?: string; avatarUrl?: string }[]
+  >([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -53,6 +57,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
           if (cancelled) return;
           const assignedIds = new Set((task?.assignees || []).map((a: any) => a.userId));
           setAssigneeSuggestions(users.filter((u) => !assignedIds.has(u.userId)));
+          setHighlightedIndex(0);
         })
         .catch(() => {
           if (!cancelled) setAssigneeSuggestions([]);
@@ -148,7 +153,12 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     handleUpdate({ recurrence: e.target.value });
   };
 
-  const handleAddAssignee = async (user: { userId: string; username: string }) => {
+  const handleAddAssignee = async (user: {
+    userId: string;
+    username: string;
+    email?: string;
+    avatarUrl?: string;
+  }) => {
     const currentAssignees = task.assignees || [];
     if (currentAssignees.some((a: any) => a.userId === user.userId)) {
       setAssigneeInput('');
@@ -676,7 +686,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                         fontSize: 'var(--text-xs)',
                       }}
                     >
-                      <Avatar username={a.username || a.userId} size="sm" />
+                      <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
                       <span style={{ color: 'var(--text-primary)' }}>
                         {a.username || a.userId}
                       </span>
@@ -701,9 +711,19 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                       value={assigneeInput}
                       onChange={(e) => setAssigneeInput(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && assigneeSuggestions[0]) {
+                        if (e.key === 'ArrowDown' && assigneeSuggestions.length > 0) {
                           e.preventDefault();
-                          handleAddAssignee(assigneeSuggestions[0]);
+                          setHighlightedIndex((i) =>
+                            nextHighlightedIndex(i, assigneeSuggestions.length, 'down'),
+                          );
+                        } else if (e.key === 'ArrowUp' && assigneeSuggestions.length > 0) {
+                          e.preventDefault();
+                          setHighlightedIndex((i) =>
+                            nextHighlightedIndex(i, assigneeSuggestions.length, 'up'),
+                          );
+                        } else if (e.key === 'Enter' && assigneeSuggestions[highlightedIndex]) {
+                          e.preventDefault();
+                          handleAddAssignee(assigneeSuggestions[highlightedIndex]);
                         } else if (e.key === 'Escape') {
                           setAssigneeInput('');
                           setAssigneeSuggestions([]);
@@ -736,17 +756,18 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                           overflow: 'hidden',
                         }}
                       >
-                        {assigneeSuggestions.map((u) => (
+                        {assigneeSuggestions.map((u, i) => (
                           <button
                             key={u.userId}
                             onClick={() => handleAddAssignee(u)}
+                            onMouseEnter={() => setHighlightedIndex(i)}
                             style={{
                               display: 'flex',
                               alignItems: 'center',
                               gap: 'var(--space-2)',
                               width: '100%',
                               padding: 'var(--space-2) var(--space-3)',
-                              background: 'none',
+                              background: i === highlightedIndex ? 'var(--surface-2)' : 'none',
                               border: 'none',
                               color: 'var(--text-primary)',
                               fontSize: 'var(--text-sm)',
@@ -754,8 +775,20 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                               textAlign: 'left',
                             }}
                           >
-                            <Avatar username={u.username} size="sm" />
-                            <span>{u.username}</span>
+                            <Avatar username={u.username} avatarUrl={u.avatarUrl} size="sm" />
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <span>{u.username}</span>
+                              {u.email && (
+                                <span
+                                  style={{
+                                    fontSize: 'var(--text-xs)',
+                                    color: 'var(--text-muted)',
+                                  }}
+                                >
+                                  {u.email}
+                                </span>
+                              )}
+                            </div>
                           </button>
                         ))}
                       </div>
