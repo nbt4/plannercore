@@ -27,7 +27,7 @@
 **Interfaces:**
 - Produces: `core.TaskAssignee` gains `Username string`, `Email string`, `AvatarURL string` fields (JSON-only, `gorm:"-"`, not persisted) — consumed by Task 2's hydration step and read directly by frontend code in Tasks 6–7 as `a.username` / `a.email` / `a.avatarUrl`.
 
-- [ ] **Step 1: Add the three display fields**
+- [x] **Step 1: Add the three display fields**
 
 Replace:
 
@@ -57,12 +57,12 @@ type TaskAssignee struct {
 }
 ```
 
-- [ ] **Step 2: Build to verify the struct still compiles**
+- [x] **Step 2: Build to verify the struct still compiles**
 
 Run: `go build ./...`
 Expected: exits 0, no output.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add internal/core/models.go
@@ -81,7 +81,7 @@ git commit -m "feat: add display fields to TaskAssignee (hydrated, not persisted
 - Consumes: `core.TaskAssignee.Username/Email/AvatarURL` (Task 1), `s.repo.db *gorm.DB` (existing private field, same package).
 - Produces: `(s *Service) annotate(task *core.Task) *core.Task` and `(s *Service) annotateAll(tasks []core.Task) []core.Task` (converted from package functions to `Service` methods — every existing call site in this file must change from `annotate(x)`/`annotateAll(x)` to `s.annotate(x)`/`s.annotateAll(x)`).
 
-- [ ] **Step 1: Convert `annotate`/`annotateAll` to methods and add `hydrateAssignees`**
+- [x] **Step 1: Convert `annotate`/`annotateAll` to methods and add `hydrateAssignees`**
 
 Replace:
 
@@ -192,7 +192,7 @@ func (s *Service) hydrateAssignees(tasks []core.Task) {
 }
 ```
 
-- [ ] **Step 2: Update every call site in this file**
+- [x] **Step 2: Update every call site in this file**
 
 In `ListTasks` (was `return annotateAll(tasks), nil`):
 
@@ -258,12 +258,12 @@ In `GetMyTasks` and `GetMyDay` (both were `return annotateAll(tasks), nil` — c
 	return s.annotateAll(tasks), nil
 ```
 
-- [ ] **Step 3: Build to verify every call site was updated**
+- [x] **Step 3: Build to verify every call site was updated**
 
 Run: `go build ./...`
 Expected: exits 0. If it fails with "undefined: annotate" or "undefined: annotateAll", a call site was missed — search with `grep -n "[^.]annotate(" internal/tasks/service.go` and `grep -n "[^.]annotateAll(" internal/tasks/service.go` and fix any remaining bare (non-`s.`) calls.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add internal/tasks/service.go
@@ -280,7 +280,7 @@ git commit -m "feat: hydrate assignee username/email/avatarUrl on every task rea
 **Interfaces:**
 - Produces: `GET /api/v1/planner/users?q=...` response entries change from `{userId, username}` to `{userId, username, email, avatarUrl}` — consumed by the frontend picker in Task 7 and by `plannerApi.ts`'s type in Task 5.
 
-- [ ] **Step 1: Add the join and extra fields**
+- [x] **Step 1: Add the join and extra fields**
 
 Replace:
 
@@ -356,12 +356,12 @@ with:
 	})
 ```
 
-- [ ] **Step 2: Build to verify**
+- [x] **Step 2: Build to verify**
 
 Run: `go build ./...`
 Expected: exits 0.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add cmd/server/main.go
@@ -379,7 +379,7 @@ git commit -m "feat: /users search endpoint returns email and avatarUrl"
 **Interfaces:**
 - Produces: `nextHighlightedIndex(current: number, length: number, direction: 'up' | 'down'): number` — consumed by `TaskDetailPanel.tsx` in Task 7.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```typescript
 import { test } from 'node:test';
@@ -413,12 +413,12 @@ test('an empty list stays at index 0 (no suggestions to highlight)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `cd web && node --test src/lib/pickerNavigation.test.ts`
 Expected: FAIL — `Cannot find module './pickerNavigation'` (file doesn't exist yet).
 
-- [ ] **Step 3: Write the minimal implementation**
+- [x] **Step 3: Write the minimal implementation**
 
 ```typescript
 // Computes the next highlighted suggestion index for an Outlook/Teams-style
@@ -435,12 +435,12 @@ export function nextHighlightedIndex(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `cd web && node --test src/lib/pickerNavigation.test.ts`
 Expected: `pass 6`, `fail 0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/lib/pickerNavigation.ts web/src/lib/pickerNavigation.test.ts
@@ -459,7 +459,7 @@ git commit -m "feat: add pure helper for picker arrow-key navigation"
 - Consumes: nothing new (pure type-level change).
 - Produces: `api.users.search` return type includes `email`/`avatarUrl`; `usePlanTasks().addAssignee`'s `user` parameter type includes `email`/`avatarUrl` — consumed by `TaskDetailPanel.tsx` in Task 7, which already passes the full suggestion object through unchanged.
 
-- [ ] **Step 1: Widen `api.users.search`'s return type**
+- [x] **Step 1: Widen `api.users.search`'s return type**
 
 Replace:
 
@@ -483,7 +483,7 @@ with:
   },
 ```
 
-- [ ] **Step 2: Widen `TasksContextValue.addAssignee`'s parameter type and its implementation**
+- [x] **Step 2: Widen `TasksContextValue.addAssignee`'s parameter type and its implementation**
 
 In the `TasksContextValue` interface, replace:
 
@@ -515,12 +515,12 @@ with:
 
 (This only widens the accepted shape — the rest of `addAssignee`'s body, which spreads `user` as-is into the optimistic merge, needs no further change since it already stores whatever object it's given.)
 
-- [ ] **Step 3: Type-check and build**
+- [x] **Step 3: Type-check and build**
 
 Run: `cd web && npm run build`
 Expected: builds clean (`tsc -b && vite build` succeeds). If `addAssignee`'s closing arrow-function syntax doesn't match after the edit, fix the trailing `, []);` to align with the new multi-line signature (compare against the existing `reorderTask` callback a few lines below for the established multi-line `useCallback` formatting in this file).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add web/src/services/plannerApi.ts web/src/contexts/TasksContext.tsx
@@ -538,7 +538,7 @@ git commit -m "feat: widen assignee types to carry email/avatarUrl through"
 **Interfaces:**
 - Consumes: `a.username`/`a.avatarUrl` now reliably populated by Task 2's backend hydration.
 
-- [ ] **Step 1: Fix `TaskCard.tsx`'s hardcoded `userId` avatar bug**
+- [x] **Step 1: Fix `TaskCard.tsx`'s hardcoded `userId` avatar bug**
 
 Replace:
 
@@ -552,7 +552,7 @@ with:
                 <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
 ```
 
-- [ ] **Step 2: Wire `avatarUrl` into `GridView.tsx`**
+- [x] **Step 2: Wire `avatarUrl` into `GridView.tsx`**
 
 Replace:
 
@@ -566,12 +566,12 @@ with:
               <Avatar username={a.username || a.userId} avatarUrl={a.avatarUrl} size="sm" />
 ```
 
-- [ ] **Step 3: Build to verify**
+- [x] **Step 3: Build to verify**
 
 Run: `cd web && npm run build`
 Expected: builds clean.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add web/src/components/board/TaskCard.tsx web/src/components/grid/GridView.tsx
@@ -590,7 +590,7 @@ git commit -m "fix: TaskCard/GridView show real assignee avatar instead of raw u
 **Interfaces:**
 - Consumes: `nextHighlightedIndex` from `../../lib/pickerNavigation` (Task 4); widened `assigneeSuggestions` items now carry `email`/`avatarUrl` (Task 5/3).
 
-- [ ] **Step 1: Import the navigation helper and widen suggestion state**
+- [x] **Step 1: Import the navigation helper and widen suggestion state**
 
 Replace:
 
@@ -622,7 +622,7 @@ with:
   const [highlightedIndex, setHighlightedIndex] = useState(0);
 ```
 
-- [ ] **Step 2: Reset the highlight whenever the suggestion list changes**
+- [x] **Step 2: Reset the highlight whenever the suggestion list changes**
 
 Replace:
 
@@ -655,7 +655,7 @@ with:
         });
 ```
 
-- [ ] **Step 3: Pass `avatarUrl` through on the assignee chips**
+- [x] **Step 3: Pass `avatarUrl` through on the assignee chips**
 
 Replace:
 
@@ -675,7 +675,7 @@ with:
                       </span>
 ```
 
-- [ ] **Step 4: Add arrow-key navigation to the input's `onKeyDown`**
+- [x] **Step 4: Add arrow-key navigation to the input's `onKeyDown`**
 
 Replace:
 
@@ -715,7 +715,7 @@ with:
                       }}
 ```
 
-- [ ] **Step 5: Show the highlighted state, avatar, and email in each suggestion row**
+- [x] **Step 5: Show the highlighted state, avatar, and email in each suggestion row**
 
 Replace:
 
@@ -784,12 +784,12 @@ with:
                         ))}
 ```
 
-- [ ] **Step 6: Build to verify**
+- [x] **Step 6: Build to verify**
 
 Run: `cd web && npm run build`
 Expected: builds clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add web/src/components/tasks/TaskDetailPanel.tsx
@@ -804,17 +804,17 @@ git commit -m "feat: picker arrow-key navigation, email display, and real avatar
 
 **Interfaces:** none.
 
-- [ ] **Step 1: Invoke the `verify` skill** to exercise the full change end-to-end, following the same disposable-stack methodology used for the WebSocket live-sync plan (ephemeral local Postgres seeded from `/opt/dev/cores/migrations/postgresql/000_combined_init.sql` + this repo's own migrations, backend run via `go run cmd/server/main.go`, frontend via `npm run dev`) if no browser automation tool is available in the environment at execution time; use real browser interaction if one is available.
+- [x] **Step 1: Invoke the `verify` skill** to exercise the full change end-to-end, following the same disposable-stack methodology used for the WebSocket live-sync plan (ephemeral local Postgres seeded from `/opt/dev/cores/migrations/postgresql/000_combined_init.sql` + this repo's own migrations, backend run via `go run cmd/server/main.go`, frontend via `npm run dev`) if no browser automation tool is available in the environment at execution time; use real browser interaction if one is available.
 
-- [ ] **Step 2: Verify the core bug fix** — add an assignee to a task, then reload the page (or refetch via a second tab): the assignee's real name and avatar (or initials, if no `avatar_url` row exists) must show, not the raw numeric user ID.
+- [x] **Step 2: Verify the core bug fix** — add an assignee to a task, then reload the page (or refetch via a second tab): the assignee's real name and avatar (or initials, if no `avatar_url` row exists) must show, not the raw numeric user ID.
 
-- [ ] **Step 3: Verify picker polish** — type a query that returns 3+ suggestions; confirm ArrowDown/ArrowUp move the highlighted row (with visible highlight background) and wrap around at both ends; confirm Enter adds the currently highlighted suggestion (not always the first); confirm each suggestion row shows an email line when the looked-up user has one.
+- [x] **Step 3: Verify picker polish** — type a query that returns 3+ suggestions; confirm ArrowDown/ArrowUp move the highlighted row (with visible highlight background) and wrap around at both ends; confirm Enter adds the currently highlighted suggestion (not always the first); confirm each suggestion row shows an email line when the looked-up user has one.
 
-- [ ] **Step 4: Regression-check** the `/users` endpoint directly (e.g. `curl -b cookies.txt ".../api/v1/planner/users?q=admin"`) to confirm the response shape is `{userId, username, email, avatarUrl}` and didn't break existing consumers.
+- [x] **Step 4: Regression-check** the `/users` endpoint directly (e.g. `curl -b cookies.txt ".../api/v1/planner/users?q=admin"`) to confirm the response shape is `{userId, username, email, avatarUrl}` and didn't break existing consumers.
 
-- [ ] **Step 5: Run full test suites**
+- [x] **Step 5: Run full test suites**
 
 Run: `go build ./... && (cd web && npm run build && node --test)`
 Expected: Go build clean; `npm run build` clean; all `node --test` tests pass (the 10 pre-existing `plannerEvents.test.ts` tests plus the 6 new `pickerNavigation.test.ts` tests).
 
-- [ ] **Step 6: Update this plan's checkboxes and hand off to `finishing-a-development-branch`** once verification passes, following the same pattern used to close out the WebSocket live-sync branch.
+- [x] **Step 6: Update this plan's checkboxes and hand off to `finishing-a-development-branch`** once verification passes, following the same pattern used to close out the WebSocket live-sync branch.

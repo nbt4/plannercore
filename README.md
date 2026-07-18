@@ -14,6 +14,7 @@
 - **Sprint-Planung** — Agile Sprint-Verwaltung mit Backlog, Task-Zuweisung und Sprint-Dauer
 - **Goals** — OKR-ähnliche Zielverwaltung mit Fortschrittsanzeige
 - **People View** — Team-Auslastung und Kapazitätsplanung
+- **Bearbeiter-Picker** — Suche mit E-Mail, echten Profilbildern und Tastatursteuerung; Namen und Avatare bleiben nach Reload erhalten
 - **Persönliche Ansichten** — „Meine Aufgaben" (aggregiert) und „Mein Tag" (tägliche Fokus-Ansicht)
 - **Echtzeit-Kollaboration** — WebSocket-basierte Live-Updates für alle Board-Änderungen
 - **Integration Links** — Verknüpfung von Aufgaben mit RentalCore-Jobs und WarehouseCore-Devices
@@ -102,6 +103,7 @@ Frontend Dev-Server: `http://localhost:3003` (proxied API zu Backend `:8080`)
 | `POST`  | `/api/v1/auth/login`       | Benutzer-Login                           |
 | `POST`  | `/api/v1/auth/logout`      | Session beenden                          |
 | `GET`   | `/api/v1/planner/me`       | Aktuellen Benutzer abrufen (🔒)           |
+| `GET`   | `/api/v1/planner/users?q=` | Aktive Benutzer inkl. E-Mail/Avatar suchen (🔒) |
 
 ### Pläne
 
