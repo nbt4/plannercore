@@ -52,6 +52,7 @@ docker run -d \
   -e DB_USER=rentalcore \
   -e DB_PASS=*** \
   -e CORES_JWT_SECRET=your-2...cret \
+  -e COOKIE_DOMAIN=.example.com \
   -p 8083:8080 \
   nobentie/plannercore:latest
 ```
@@ -70,6 +71,7 @@ plannercore:
     DB_USER: rentalcore
     DB_PASS: ${DB_PASS}
     CORES_JWT_SECRET: ${CORES_JWT_SECRET}
+    COOKIE_DOMAIN: ${COOKIE_DOMAIN}
   depends_on:
     - postgres
   volumes:
@@ -229,7 +231,7 @@ plannercore/
 
 ## Login
 
-Plannercore teilt die User-Datenbank mit dem Cores-Dashboard, RentalCore und WarehouseCore. Lokale und aus Microsoft Entra synchronisierte Benutzer stehen gleichermaßen als Bearbeiter zur Verfügung. Der Picker und alle Task-Antworten verwenden den zentralen Profil-Anzeigenamen statt Benutzername oder numerischer ID. Der Login erfolgt über den bestehenden Cores-JWT-Cookie.
+Plannercore teilt die User-Datenbank mit dem Cores-Dashboard, RentalCore und WarehouseCore. Lokale und aus Microsoft Entra synchronisierte Benutzer stehen gleichermaßen als Bearbeiter zur Verfügung. Der Picker und alle Task-Antworten verwenden den zentralen Profil-Anzeigenamen statt Benutzername oder numerischer ID. Der Login erfolgt über den bestehenden Cores-JWT-Cookie. Bei identischem `CORES_JWT_SECRET` und gemeinsamer `COOKIE_DOMAIN` gilt auch ein direkter PlannerCore-Login in allen anderen Cores-Diensten.
 
 Default-Credentials: `admin` / `admin` (Passwortänderung beim ersten Login erzwungen)
 

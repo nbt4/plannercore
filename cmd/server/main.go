@@ -92,7 +92,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.5")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.6")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	// Login/Logout (same logic as cores-dashboard)
@@ -136,7 +136,9 @@ func main() {
 		}
 
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("cores_token", signed, 86400, "/", "", false, true)
+		cookieDomain := os.Getenv("COOKIE_DOMAIN")
+		secureCookie := cookieDomain != "" || c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+		c.SetCookie("cores_token", signed, 86400, "/", cookieDomain, secureCookie, true)
 		c.JSON(http.StatusOK, gin.H{
 			"success":  true,
 			"username": user.Username,
@@ -146,7 +148,9 @@ func main() {
 
 	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("cores_token", "", -1, "/", "", false, true)
+		cookieDomain := os.Getenv("COOKIE_DOMAIN")
+		secureCookie := cookieDomain != "" || c.Request.TLS != nil || c.GetHeader("X-Forwarded-Proto") == "https"
+		c.SetCookie("cores_token", "", -1, "/", cookieDomain, secureCookie, true)
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
