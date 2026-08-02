@@ -258,6 +258,7 @@ func main() {
 	r.Static("/assets", "./web/dist/assets")
 	r.Static("/planner/assets", "./web/dist/assets")
 	r.Static("/logos", "./web/dist/logos")
+	r.Static("/planner/logos", "./web/dist/logos")
 
 	// SPA fallback for /planner/* (cached clients with old base path)
 	// Inject DASHBOARD_URL into the served HTML so the React app can read it

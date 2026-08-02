@@ -92,6 +92,11 @@ npm run dev
 
 Frontend Dev-Server: `http://localhost:3003` (proxied API zu Backend `:8080`)
 
+Die produktive SPA unterstützt beide Cores-Betriebsarten: eine eigene Domain
+unter `/` sowie den Dashboard-Reverse-Proxy unter `/planner`. Der Router erkennt
+den aktiven Pfad automatisch; statische Assets und Logos werden unter beiden
+Pfadvarianten ausgeliefert.
+
 ---
 
 ## API-Endpunkte

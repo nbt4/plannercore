@@ -63,7 +63,12 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const basename = import.meta.env.BASE_URL !== '/' ? import.meta.env.BASE_URL : undefined;
+  // PlannerCore is available both on its own domain at `/` and through the
+  // dashboard proxy at `/planner`. Only apply the proxy basename when the
+  // current URL actually uses it; otherwise React Router renders a blank app.
+  const basename = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
+    ? '/planner'
+    : undefined
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
