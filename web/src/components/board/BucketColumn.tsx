@@ -7,6 +7,7 @@ import { usePlanTasks } from '../../contexts/TasksContext';
 import TaskCard from './TaskCard';
 import AddTaskInline from './AddTaskInline';
 import type { TaskCardData } from './types';
+import { UNASSIGNED_BUCKET_ID } from './boardDrag';
 
 interface BucketColumnProps {
   bucket: {
@@ -44,6 +45,7 @@ export default function BucketColumn({
 }: BucketColumnProps) {
   const { updateBucket, deleteBucket, moveBucket } = usePlanTasks();
   const { setNodeRef, isOver } = useDroppable({ id: bucket.id });
+  const isUnassigned = bucket.id === UNASSIGNED_BUCKET_ID;
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [nameValue, setNameValue] = useState(bucket.name);
@@ -118,16 +120,19 @@ export default function BucketColumn({
     <div
       ref={setNodeRef}
       style={{
-        minWidth: 280,
-        maxWidth: 340,
-        flexShrink: 0,
+        width: 340,
+        minWidth: 340,
+        flex: '0 0 340px',
+        height: '100%',
+        minHeight: 0,
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: STYLES.bucketBg,
         borderRadius: STYLES.cardRadius,
         border: isOver ? '1px solid var(--color-info)' : 'var(--border-default)',
-        maxHeight: '100%',
-        overflow: 'hidden',
+        overflow: 'visible',
+        position: 'relative',
+        zIndex: menuOpen ? 20 : 1,
       }}
     >
       {/* Header */}
@@ -198,7 +203,7 @@ export default function BucketColumn({
             {tasks.length}
           </span>
         </div>
-        <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+        {!isUnassigned && <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             style={{
@@ -227,7 +232,7 @@ export default function BucketColumn({
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-dropdown)',
                 minWidth: 190,
-                zIndex: 10,
+                zIndex: 100,
                 overflow: 'hidden',
               }}
             >
@@ -266,7 +271,7 @@ export default function BucketColumn({
               </button>
             </div>
           )}
-        </div>
+        </div>}
       </div>
 
       {moveError && (
@@ -351,7 +356,9 @@ export default function BucketColumn({
       <div
         style={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
+          overflowX: 'hidden',
           padding: '0 var(--space-2)',
           display: 'flex',
           flexDirection: 'column',
@@ -371,7 +378,10 @@ export default function BucketColumn({
 
       {/* Add task */}
       <div style={{ flexShrink: 0 }}>
-        <AddTaskInline planId={planId} bucketId={bucket.id} />
+        <AddTaskInline
+          planId={planId}
+          bucketId={isUnassigned ? undefined : bucket.id}
+        />
       </div>
     </div>
   );

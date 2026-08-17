@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CheckSquare, Plus, Trash2, GripVertical } from 'lucide-react';
 import { api } from '../../services/plannerApi';
 
@@ -19,6 +19,8 @@ export default function ChecklistSection({ taskId, onProgressChanged }: Checklis
   const [newTitle, setNewTitle] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const addInputRef = useRef<HTMLInputElement>(null);
+  const submissionQueue = useRef<Promise<void>>(Promise.resolve());
 
   useEffect(() => {
     if (taskId) {
@@ -32,17 +34,21 @@ export default function ChecklistSection({ taskId, onProgressChanged }: Checklis
   const total = items.length;
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const handleAdd = async () => {
+  const handleAdd = () => {
     const title = newTitle.trim();
     if (!title) return;
-    try {
-      const created = await api.checklists.add(taskId, title);
-      setItems((prev) => [...prev, created]);
-      setNewTitle('');
-      onProgressChanged?.();
-    } catch (e) {
-      /* silently fail */
-    }
+    setNewTitle('');
+    requestAnimationFrame(() => addInputRef.current?.focus());
+
+    submissionQueue.current = submissionQueue.current
+      .then(async () => {
+        const created = await api.checklists.add(taskId, title);
+        setItems((prev) => [...prev, created]);
+        onProgressChanged?.();
+      })
+      .catch(() => {
+        // A failed item must not close or interrupt quick entry.
+      });
   };
 
   const handleToggle = async (id: string) => {
@@ -282,10 +288,14 @@ export default function ChecklistSection({ taskId, onProgressChanged }: Checklis
       >
         <Plus size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
         <input
+          ref={addInputRef}
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') handleAdd();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleAdd();
+            }
           }}
           placeholder="Neues Element"
           style={{

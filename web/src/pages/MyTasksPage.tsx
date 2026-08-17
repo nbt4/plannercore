@@ -6,6 +6,7 @@ import PriorityBadge from '../components/shared/PriorityBadge';
 import LabelBadge from '../components/shared/LabelBadge';
 import ProgressBar from '../components/shared/ProgressBar';
 import EmptyState from '../components/shared/EmptyState';
+import CreateTaskQuickAdd from '../components/tasks/CreateTaskQuickAdd';
 
 interface MyTask {
   id: string;
@@ -77,6 +78,12 @@ export default function MyTasksPage() {
           )}
           title="Keine offenen Aufgaben"
           description="Alle deine Aufgaben sind erledigt. Gut gemacht!"
+          action={(
+            <CreateTaskQuickAdd
+              assignToCurrentUser
+              onCreated={(task) => setTasks((current) => [...current, task])}
+            />
+          )}
         />
       </div>
     );
@@ -92,16 +99,22 @@ export default function MyTasksPage() {
         overflow: 'auto',
       }}
     >
-      <h1
-        style={{
-          margin: '0 0 var(--space-1)',
-          fontSize: 'var(--text-2xl)',
-          fontWeight: 'var(--weight-bold)',
-          color: 'var(--text-primary)',
-        }}
-      >
-        Meine Aufgaben
-      </h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-3)' }}>
+        <h1
+          style={{
+            margin: '0 0 var(--space-1)',
+            fontSize: 'var(--text-2xl)',
+            fontWeight: 'var(--weight-bold)',
+            color: 'var(--text-primary)',
+          }}
+        >
+          Meine Aufgaben
+        </h1>
+        <CreateTaskQuickAdd
+          assignToCurrentUser
+          onCreated={(task) => setTasks((current) => [...current, task])}
+        />
+      </div>
       <p
         style={{
           margin: '0 0 var(--space-4)',

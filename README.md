@@ -6,16 +6,17 @@
 
 ## Features
 
-- **Kanban-Board** — Drag-and-Drop-Aufgabenverwaltung mit Buckets (Spalten), Labels und Fortschritts-Tracking
+- **Kanban-Board** — Präzises Drag-and-Drop über eigene Griffe und Live-Einfügepositionen; feste, horizontal scrollbar angeordnete Buckets mit Labels und Fortschritts-Tracking
 - **Grid View** — Tabellarische Aufgabenübersicht mit Sortierung, Filterung und Mehrfachauswahl
 - **Schedule View** — Kalenderansicht (Monat/Woche/Tag) mit react-big-calendar
 - **Timeline (Gantt)** — Gantt-Diagramm mit Abhängigkeiten, kritischem Pfad und Drag-and-Drop-Terminierung
-- **Charts & Analytics** — Statusverteilung, Workload-Chart und Burndown-Diagramme mit recharts
+- **Charts & Analytics** — Live aus den Planaufgaben berechnete Spalten- und Prioritätsverteilung, Workload-Chart und Burndown-Diagramme mit recharts
 - **Sprint-Planung** — Agile Sprint-Verwaltung mit Backlog, Task-Zuweisung und Sprint-Dauer
 - **Goals** — OKR-ähnliche Zielverwaltung mit Fortschrittsanzeige
 - **People View** — Team-Auslastung und Kapazitätsplanung
 - **Bearbeiter-Picker** — Outlook-artige Suche mit großem Anzeigenamen, kleiner E-Mail-Zeile, Profilbild und Tastatursteuerung; Anzeigenamen bleiben nach Reload erhalten
 - **Persönliche Ansichten** — „Meine Aufgaben" (aggregiert) und „Mein Tag" (tägliche Fokus-Ansicht)
+- **Schnellerfassung** — Neue Aufgaben sind in jeder Planansicht sowie in „Meine Aufgaben“ und „Mein Tag“ anlegbar; Enter speichert und hält das Eingabefeld für die nächste Aufgabe offen. Checklisten unterstützen denselben Ablauf ohne Dialog-Reload.
 - **Echtzeit-Kollaboration** — WebSocket-basierte Live-Updates für alle Board-Änderungen
 - **Integration Links** — Verknüpfung von Aufgaben mit RentalCore-Jobs und WarehouseCore-Devices
 - **Rich-Text Editor** — Tiptap-basierter WYSIWYG-Editor für Aufgabenbeschreibungen mit Checklisten
@@ -132,7 +133,7 @@ Pfadvarianten ausgeliefert.
 | `PUT`    | `/api/v1/planner/tasks/:taskId`                 | Task aktualisieren (🔒)                  |
 | `DELETE` | `/api/v1/planner/tasks/:taskId`                 | Task löschen (🔒)                        |
 | `PATCH`  | `/api/v1/planner/tasks/:taskId/progress`        | Fortschritt aktualisieren (🔒)           |
-| `PATCH`  | `/api/v1/planner/tasks/reorder`                 | Tasks umsortieren (🔒)                   |
+| `PUT`    | `/api/v1/planner/:planId/tasks/reorder`         | Tasks innerhalb und zwischen Spalten umsortieren (🔒) |
 | `POST`   | `/api/v1/planner/tasks/:taskId/checklist`       | Checklisten-Item hinzufügen (🔒)         |
 | `PATCH`  | `/api/v1/planner/checklist/:id`                 | Checklisten-Item aktualisieren (🔒)      |
 | `DELETE` | `/api/v1/planner/checklist/:id`                 | Checklisten-Item löschen (🔒)            |

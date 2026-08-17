@@ -6,6 +6,7 @@ import { usePlans } from '../../hooks/usePlans';
 import { api } from '../../services/plannerApi';
 import ViewSwitcher from './ViewSwitcher';
 import PlanMembersModal from './PlanMembersModal';
+import AddTaskInline from '../board/AddTaskInline';
 
 export default function PlanHeader() {
   const { planId } = useParams<{ planId: string }>();
@@ -136,6 +137,7 @@ export default function PlanHeader() {
 
       {/* Right: Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+        {planId && <AddTaskInline planId={planId} compact />}
         <IconButton onClick={handleCopy} title="Plan kopieren" icon={Copy} />
         <IconButton onClick={() => setMembersOpen(true)} title="Plan teilen" icon={Users} />
         <IconButton onClick={handleDelete} title="Plan löschen" icon={Trash2} />

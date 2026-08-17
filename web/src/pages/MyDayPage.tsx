@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sun, Plus, CheckCircle2, Circle, Search } from 'lucide-react';
 import { api } from '../services/plannerApi';
 import EmptyState from '../components/shared/EmptyState';
+import CreateTaskQuickAdd from '../components/tasks/CreateTaskQuickAdd';
 
 interface DayTask {
   id: string;
@@ -162,7 +163,12 @@ export default function MyDayPage() {
           title="Dein Tag ist noch leer"
           description="Füge Aufgaben hinzu, um dich auf das Wesentliche zu konzentrieren."
           action={
-            <button
+            <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
+              <CreateTaskQuickAdd
+                addToMyDay
+                onCreated={(task) => setTasks((current) => [...current, { ...task, completed: false }])}
+              />
+              <button
               onClick={() => setShowAddInput(true)}
               style={{
                 display: 'flex',
@@ -180,7 +186,8 @@ export default function MyDayPage() {
             >
               <Plus size={18} />
               <span>Aufgabe hinzufügen</span>
-            </button>
+              </button>
+            </div>
           }
         />
       </div>
@@ -370,6 +377,12 @@ export default function MyDayPage() {
       ))}
 
       {/* Add task to day */}
+      <div style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
+        <CreateTaskQuickAdd
+          addToMyDay
+          onCreated={(task) => setTasks((current) => [...current, { ...task, completed: false }])}
+        />
+      </div>
       {showAddInput ? (
         <div
           style={{

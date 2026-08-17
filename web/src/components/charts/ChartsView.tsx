@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
@@ -6,8 +6,9 @@ import {
 } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import { api } from '../../services/plannerApi';
-import { PRIORITY_COLORS } from '../../lib/constants';
+import { usePlanTasks } from '../../contexts/TasksContext';
 import EmptyState from '../shared/EmptyState';
+import { buildBucketData, buildPriorityData, buildWorkloadData } from './chartData';
 
 const STATUS_COLORS = [
   'var(--color-primary)',
@@ -59,29 +60,34 @@ function CustomTooltip({ active, payload, label }: any) {
 
 export default function ChartsView() {
   const { planId } = useParams<{ planId: string }>();
-  const [taskChart, setTaskChart] = useState<any>(null);
+  const { tasks, buckets, loading: tasksLoading } = usePlanTasks();
   const [workload, setWorkload] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [workloadLoading, setWorkloadLoading] = useState(true);
 
   useEffect(() => {
     if (planId && planId !== 'new') {
-      setLoading(true);
-      Promise.all([
-        api.analytics.taskChart(planId).catch(() => null),
-        api.analytics.workload(planId).catch(() => []),
-      ])
-        .then(([chart, work]) => {
-          setTaskChart(chart);
-          setWorkload(work || []);
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
+      setWorkloadLoading(true);
+      api.analytics.workload(planId)
+        .then((work) => setWorkload(work || []))
+        .catch(() => setWorkload([]))
+        .finally(() => setWorkloadLoading(false));
     } else {
-      setLoading(false);
-      setTaskChart(null);
+      setWorkloadLoading(false);
       setWorkload([]);
     }
   }, [planId]);
+
+  const statusData = useMemo(() => buildBucketData(tasks, buckets), [buckets, tasks]);
+  const priorityData = useMemo(
+    () => buildPriorityData(tasks, priorityOrder).map((datum) => ({
+      ...datum,
+      fill: PRIORITY_BAR_COLORS[
+        datum.name.toLowerCase() as keyof typeof PRIORITY_BAR_COLORS
+      ],
+    })),
+    [tasks],
+  );
+  const workloadData = useMemo(() => buildWorkloadData(workload), [workload]);
 
   if (!planId || planId === 'new') {
     return (
@@ -93,7 +99,7 @@ export default function ChartsView() {
     );
   }
 
-  if (loading) {
+  if (tasksLoading || workloadLoading) {
     return (
       <div
         style={{
@@ -109,31 +115,6 @@ export default function ChartsView() {
       </div>
     );
   }
-
-  // Transform taskChart data
-  const statusData = taskChart?.byBucket
-    ? Object.entries(taskChart.byBucket).map(([name, count]) => ({
-        name,
-        value: count as number,
-      }))
-    : [];
-
-  const priorityData = priorityOrder
-    .map((p) => ({
-      name: p.charAt(0).toUpperCase() + p.slice(1),
-      value:
-        taskChart?.byPriority?.[p] ??
-        taskChart?.byPriority?.[p.toLowerCase()] ??
-        0,
-      fill: PRIORITY_BAR_COLORS[p as keyof typeof PRIORITY_BAR_COLORS],
-    }))
-    .filter((d) => d.value > 0);
-
-  const workloadData = (workload || []).map((w: any) => ({
-    name: w.username || w.userId || w.name || 'Unknown',
-    tasks: w.taskCount ?? w.tasks ?? 0,
-    completed: w.completedCount ?? w.completed ?? 0,
-  }));
 
   const hasData =
     statusData.length > 0 || priorityData.length > 0 || workloadData.length > 0;

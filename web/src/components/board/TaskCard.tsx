@@ -1,6 +1,6 @@
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Calendar } from 'lucide-react';
+import { Calendar, GripVertical } from 'lucide-react';
 import { STATUS_COLORS, STATUS_LABELS, STYLES } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
@@ -24,7 +24,9 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
   } = useSortable({ id: task.id });
 
   const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
+    // The DragOverlay follows the pointer. Keeping the source card stationary
+    // prevents its transform from expanding the column's scrollable bounds.
+    transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
     position: 'relative' as const,
@@ -32,7 +34,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     borderRadius: STYLES.cardRadius,
     boxShadow: STYLES.cardShadow,
     border: 'var(--border-default)',
-    cursor: isDragging ? 'grabbing' : 'grab',
+    cursor: 'pointer',
     padding: 'var(--space-3)',
   };
 
@@ -47,8 +49,6 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
       ref={setNodeRef}
       style={style}
       onClick={onClick}
-      {...attributes}
-      {...listeners}
     >
       {/* Labels */}
       {task.labels && task.labels.length > 0 && (
@@ -83,6 +83,8 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
         )}
         <div
           style={{
+            flex: 1,
+            minWidth: 0,
             fontSize: 'var(--text-sm)',
             fontWeight: 'var(--weight-medium)',
             color: 'var(--text-primary)',
@@ -96,6 +98,30 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
         >
           {task.title}
         </div>
+        <button
+          type="button"
+          aria-label={`Aufgabe ${task.title} verschieben`}
+          title="Aufgabe verschieben"
+          onClick={(event) => event.stopPropagation()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+            margin: '-4px -4px 0 0',
+            padding: 4,
+            border: 'none',
+            borderRadius: 'var(--radius-sm)',
+            backgroundColor: 'transparent',
+            color: 'var(--text-muted)',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            touchAction: 'none',
+          }}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical size={16} />
+        </button>
       </div>
 
       {/* Priority */}

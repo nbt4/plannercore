@@ -69,19 +69,19 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
     };
   }, [assigneeInput, task?.assignees]);
 
-  const fetchTask = useCallback(async () => {
+  const fetchTask = useCallback(async (showLoading = true) => {
     if (!taskId) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
     try {
       const t = await api.tasks.get(taskId);
       setTask(t);
       setTitleValue(t.title || '');
       onTaskUpdated?.(t);
     } catch (e) {
-      setTask(null);
+      if (showLoading) setTask(null);
     }
-    setLoading(false);
-  }, [taskId]);
+    if (showLoading) setLoading(false);
+  }, [taskId, onTaskUpdated]);
 
   useEffect(() => {
     fetchTask();
@@ -974,7 +974,7 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
           />
 
           {/* Sub-components */}
-          <ChecklistSection taskId={taskId} onProgressChanged={fetchTask} />
+          <ChecklistSection taskId={taskId} onProgressChanged={() => fetchTask(false)} />
           <NotesSection taskId={taskId} initialValue={task.richTextNotes || ''} />
           <CommentsSection taskId={taskId} />
           <AttachmentsSection taskId={taskId} />
