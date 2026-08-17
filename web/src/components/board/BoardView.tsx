@@ -9,7 +9,8 @@ import {
   DragOverEvent,
   DragStartEvent,
   MeasuringStrategy,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -75,7 +76,8 @@ export default function BoardView() {
   }, [bucketIds, dragGroups, filteredTaskIds, filteredTasks]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   );
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -147,6 +149,7 @@ export default function BoardView() {
 
   return (
     <div
+      className="planner-board-view"
       style={{
         height: '100%',
         minHeight: 0,
@@ -174,6 +177,7 @@ export default function BoardView() {
         onDragEnd={handleDragEnd}
       >
         <div
+          className="planner-board-columns"
           style={{
             display: 'flex',
             gap: 'var(--space-4)',

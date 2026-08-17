@@ -2,6 +2,8 @@
 
 **Microsoft Planner-Klon als vierter Core-Service — Kanban-Boards, Gantt-Diagramme, Sprint-Planung, Team-Auslastung und mehr. Vollständig integriert ins Cores-Ökosystem.**
 
+Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchoptimierte App-Shell, Safe-Area-Unterstützung und ein eigenes Homescreen-Icon – sowohl auf der eigenen Domain als auch eingebettet unter `/planner/`.
+
 ---
 
 ## Features

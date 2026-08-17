@@ -1,13 +1,22 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/plannerApi';
 import { STYLES } from '../../lib/constants';
 
-export default function Sidebar() {
+const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
+  ? '/planner/logos'
+  : '/logos';
+
+interface SidebarProps {
+  mobileOpen?: boolean;
+  onMobileClose?: () => void;
+}
+
+export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }: SidebarProps) {
   const { plans, loading, refetch } = usePlans();
   const { activePlanId } = usePlanContext();
   const { user, logout } = useAuth();
@@ -44,6 +53,7 @@ export default function Sidebar() {
 
   return (
     <aside
+      className={`planner-sidebar ${mobileOpen ? 'is-open' : ''}`}
       style={{
         width: STYLES.sidebarWidth,
         height: '100vh',
@@ -56,18 +66,22 @@ export default function Sidebar() {
       }}
     >
       {/* Logo */}
-      <div style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
+      <div className="planner-sidebar-logo" style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
         <img
-          src="/logos/plannercore_white_side.svg"
+          src={`${logoBase}/plannercore_white_side.svg`}
           alt="PlannerCore"
           style={{ height: 40, display: 'block' }}
         />
+        <button type="button" className="planner-sidebar-close" onClick={onMobileClose} aria-label="Navigation schließen">
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navigation Links */}
       <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <a
           href={(window as any).__DASHBOARD_URL__ || '/'}
+          onClick={onMobileClose}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -89,6 +103,7 @@ export default function Sidebar() {
         </a>
         <NavLink
           to="/my/tasks"
+          onClick={onMobileClose}
           style={({ isActive }) => ({
             display: 'flex',
             alignItems: 'center',
@@ -108,6 +123,7 @@ export default function Sidebar() {
         </NavLink>
         <NavLink
           to="/my/day"
+          onClick={onMobileClose}
           style={({ isActive }) => ({
             display: 'flex',
             alignItems: 'center',
@@ -148,7 +164,7 @@ export default function Sidebar() {
               Favoriten
             </div>
             {favorites.map((plan) => (
-              <PlanLink key={plan.id} plan={plan} activePlanId={activePlanId} />
+              <PlanLink key={plan.id} plan={plan} activePlanId={activePlanId} onNavigate={onMobileClose} />
             ))}
           </>
         )}
@@ -180,7 +196,7 @@ export default function Sidebar() {
           </div>
         ) : (
           others.map((plan) => (
-            <PlanLink key={plan.id} plan={plan} activePlanId={activePlanId} />
+            <PlanLink key={plan.id} plan={plan} activePlanId={activePlanId} onNavigate={onMobileClose} />
           ))
         )}
       </div>
@@ -284,15 +300,18 @@ export default function Sidebar() {
 function PlanLink({
   plan,
   activePlanId,
+  onNavigate,
 }: {
   plan: any;
   activePlanId: string | null;
+  onNavigate: () => void;
 }) {
   const isActive = activePlanId === plan.id;
 
   return (
     <NavLink
       to={`/plan/${plan.id}/board`}
+      onClick={onNavigate}
       style={{
         display: 'flex',
         alignItems: 'center',

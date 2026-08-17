@@ -259,6 +259,24 @@ func main() {
 	r.Static("/planner/assets", "./web/dist/assets")
 	r.Static("/logos", "./web/dist/logos")
 	r.Static("/planner/logos", "./web/dist/logos")
+	r.Static("/app-icons", "./web/dist/app-icons")
+	r.Static("/planner/app-icons", "./web/dist/app-icons")
+	r.GET("/manifest.webmanifest", func(c *gin.Context) {
+		c.Header("Content-Type", "application/manifest+json")
+		c.File("./web/dist/manifest.webmanifest")
+	})
+	r.GET("/planner/manifest.webmanifest", func(c *gin.Context) {
+		c.Header("Content-Type", "application/manifest+json")
+		c.File("./web/dist/manifest.webmanifest")
+	})
+	r.GET("/sw.js", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+		c.File("./web/dist/sw.js")
+	})
+	r.GET("/planner/sw.js", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+		c.File("./web/dist/sw.js")
+	})
 
 	// SPA fallback for /planner/* (cached clients with old base path)
 	// Inject DASHBOARD_URL into the served HTML so the React app can read it

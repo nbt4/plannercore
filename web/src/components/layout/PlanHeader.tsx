@@ -8,6 +8,10 @@ import ViewSwitcher from './ViewSwitcher';
 import PlanMembersModal from './PlanMembersModal';
 import AddTaskInline from '../board/AddTaskInline';
 
+const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
+  ? '/planner/logos'
+  : '/logos';
+
 export default function PlanHeader() {
   const { planId } = useParams<{ planId: string }>();
   const navigate = useNavigate();
@@ -20,6 +24,7 @@ export default function PlanHeader() {
   if (isNewPlan) {
     return (
       <header
+        className="planner-plan-header"
         style={{
           height: 56,
           display: 'flex',
@@ -31,11 +36,13 @@ export default function PlanHeader() {
         }}
       >
         <img
-          src="/logos/plannercore_white_icon.svg"
+          src={`${logoBase}/plannercore_white_icon.svg`}
           alt="PlannerCore"
           style={{ height: 28 }}
         />
-        <ViewSwitcher />
+        <div className="planner-view-switcher">
+          <ViewSwitcher />
+        </div>
       </header>
     );
   }
@@ -74,6 +81,7 @@ export default function PlanHeader() {
 
   return (
     <header
+      className="planner-plan-header"
       style={{
         height: 56,
         display: 'flex',
@@ -86,9 +94,9 @@ export default function PlanHeader() {
       }}
     >
       {/* Logo & Plan Name & Star */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
+      <div className="planner-plan-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
         <img
-          src="/logos/plannercore_black_icon.svg"
+          src={`${logoBase}/plannercore_black_icon.svg`}
           alt="PlannerCore"
           style={{ height: 28, flexShrink: 0 }}
         />
@@ -131,12 +139,12 @@ export default function PlanHeader() {
       </div>
 
       {/* Center: ViewSwitcher */}
-      <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+      <div className="planner-view-switcher" style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
         <ViewSwitcher />
       </div>
 
       {/* Right: Actions */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
+      <div className="planner-plan-actions" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-1)' }}>
         {planId && <AddTaskInline planId={planId} compact />}
         <IconButton onClick={handleCopy} title="Plan kopieren" icon={Copy} />
         <IconButton onClick={() => setMembersOpen(true)} title="Plan teilen" icon={Users} />

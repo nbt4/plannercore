@@ -1,6 +1,8 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
+import { ClipboardList, Kanban, Menu, Sun } from 'lucide-react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import { PlanProvider } from './contexts/PlanContext'
+import { PlanProvider, usePlanContext } from './contexts/PlanContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
 import { TasksProvider } from './contexts/TasksContext'
 import Sidebar from './components/layout/Sidebar'
@@ -18,33 +20,80 @@ import LoginPage from './pages/LoginPage'
 
 function PlanLayout() {
   return (
-    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-surface)' }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0">
-        <PlanHeader />
-        <div className="flex-1 overflow-hidden">
-          <Routes>
-            <Route path="board" element={<BoardView />} />
-            <Route path="grid" element={<GridView />} />
-            <Route path="schedule" element={<ScheduleView />} />
-            <Route path="charts" element={<ChartsView />} />
-            <Route path="timeline" element={<TimelineView />} />
-            <Route path="people" element={<PeopleView />} />
-            <Route path="goals" element={<GoalsView />} />
-          </Routes>
-        </div>
+    <PlannerShell locked>
+      <PlanHeader />
+      <div className="flex-1 overflow-hidden">
+        <Routes>
+          <Route path="board" element={<BoardView />} />
+          <Route path="grid" element={<GridView />} />
+          <Route path="schedule" element={<ScheduleView />} />
+          <Route path="charts" element={<ChartsView />} />
+          <Route path="timeline" element={<TimelineView />} />
+          <Route path="people" element={<PeopleView />} />
+          <Route path="goals" element={<GoalsView />} />
+        </Routes>
       </div>
-    </div>
+    </PlannerShell>
   )
 }
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex h-screen" style={{ backgroundColor: 'var(--color-surface)' }}>
-      <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 overflow-auto">
+    <PlannerShell>
+      <div className="planner-page-scroll flex-1 flex flex-col min-w-0 overflow-auto">
         {children}
       </div>
+    </PlannerShell>
+  )
+}
+
+function PlannerShell({ children, locked = false }: { children: React.ReactNode; locked?: boolean }) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const { activePlanId } = usePlanContext()
+  const activePlanPath = activePlanId ? `/plan/${activePlanId}/board` : '/plan/new'
+  const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
+    ? '/planner/logos'
+    : '/logos'
+
+  useEffect(() => {
+    document.body.classList.toggle('planner-drawer-open', mobileOpen)
+    return () => document.body.classList.remove('planner-drawer-open')
+  }, [mobileOpen])
+
+  return (
+    <div className={`planner-shell ${locked ? 'is-locked' : ''}`}>
+      {mobileOpen && <button type="button" className="planner-sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-label="Navigation schließen" />}
+      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+
+      <div className="planner-mobile-header">
+        <button type="button" className="planner-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Navigation öffnen" aria-expanded={mobileOpen}>
+          <Menu size={22} />
+        </button>
+        <img src={`${logoBase}/plannercore_white_side.svg`} alt="PlannerCore" />
+      </div>
+
+      <main className="planner-main">
+        {children}
+      </main>
+
+      <nav className="planner-mobile-tabs" aria-label="Schnellnavigation">
+        <NavLink to="/my/tasks" className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
+          <ClipboardList size={21} />
+          <span>Aufgaben</span>
+        </NavLink>
+        <NavLink to="/my/day" className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
+          <Sun size={21} />
+          <span>Mein Tag</span>
+        </NavLink>
+        <NavLink to={activePlanPath} className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
+          <Kanban size={21} />
+          <span>Board</span>
+        </NavLink>
+        <button type="button" className={`planner-mobile-tab ${mobileOpen ? 'is-active' : ''}`} onClick={() => setMobileOpen(true)}>
+          <Menu size={21} />
+          <span>Pläne</span>
+        </button>
+      </nav>
     </div>
   )
 }
@@ -53,7 +102,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--color-surface)' }}>
+      <div className="planner-auth-screen flex h-screen items-center justify-center" style={{ backgroundColor: 'var(--color-surface)' }}>
         <p style={{ color: 'var(--text-muted)' }}>Laden...</p>
       </div>
     )
