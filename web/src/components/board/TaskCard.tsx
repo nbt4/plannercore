@@ -21,7 +21,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: task.id, data: { type: 'task' } });
 
   const style: React.CSSProperties = {
     // The DragOverlay follows the pointer. Keeping the source card stationary

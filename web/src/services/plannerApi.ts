@@ -67,6 +67,12 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ direction }),
       }),
+    reorder: (planId: string, bucketIds: string[]) =>
+      request<void>(`${BASE}/${planId}/buckets/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucketIds }),
+      }),
   },
 
   tasks: {

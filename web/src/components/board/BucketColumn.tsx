@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { MoreHorizontal, ArrowLeft, ArrowRight, Pencil, Trash2 } from 'lucide-react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { MoreHorizontal, ArrowLeft, ArrowRight, GripVertical, Pencil, Trash2 } from 'lucide-react';
 import { STYLES } from '../../lib/constants';
 import { usePlanTasks } from '../../contexts/TasksContext';
 import TaskCard from './TaskCard';
@@ -44,8 +46,23 @@ export default function BucketColumn({
   onTaskClick,
 }: BucketColumnProps) {
   const { updateBucket, deleteBucket, moveBucket } = usePlanTasks();
-  const { setNodeRef, isOver } = useDroppable({ id: bucket.id });
   const isUnassigned = bucket.id === UNASSIGNED_BUCKET_ID;
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: bucket.id,
+    data: { type: 'task-container' },
+  });
+  const {
+    attributes: bucketAttributes,
+    listeners: bucketListeners,
+    setNodeRef: setSortableRef,
+    transform: bucketTransform,
+    transition: bucketTransition,
+    isDragging: isBucketDragging,
+  } = useSortable({
+    id: `bucket:${bucket.id}`,
+    data: { type: 'bucket', bucketId: bucket.id },
+    disabled: isUnassigned,
+  });
   const [menuOpen, setMenuOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [nameValue, setNameValue] = useState(bucket.name);
@@ -118,7 +135,7 @@ export default function BucketColumn({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setSortableRef}
       style={{
         width: 340,
         minWidth: 340,
@@ -133,6 +150,9 @@ export default function BucketColumn({
         overflow: 'visible',
         position: 'relative',
         zIndex: menuOpen ? 20 : 1,
+        transform: isBucketDragging ? undefined : CSS.Transform.toString(bucketTransform),
+        transition: bucketTransition,
+        opacity: isBucketDragging ? 0.45 : 1,
       }}
     >
       {/* Header */}
@@ -203,6 +223,31 @@ export default function BucketColumn({
             {tasks.length}
           </span>
         </div>
+        {!isUnassigned && (
+          <button
+            type="button"
+            aria-label={`Liste ${bucket.name} verschieben`}
+            title="Liste nach links oder rechts ziehen"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginLeft: 'var(--space-1)',
+              padding: 'var(--space-1)',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'transparent',
+              color: 'var(--text-muted)',
+              cursor: isBucketDragging ? 'grabbing' : 'grab',
+              touchAction: 'none',
+              flexShrink: 0,
+            }}
+            {...bucketAttributes}
+            {...bucketListeners}
+          >
+            <GripVertical size={16} />
+          </button>
+        )}
         {!isUnassigned && <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
           <button
             onClick={() => setMenuOpen((v) => !v)}
@@ -354,6 +399,7 @@ export default function BucketColumn({
 
       {/* Task list */}
       <div
+        ref={setDropRef}
         style={{
           flex: 1,
           minHeight: 0,

@@ -4,6 +4,7 @@ import (
 	"plannercore/internal/core"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository struct {
@@ -62,6 +63,59 @@ func (r *Repository) UpdatePosition(planID, id string, position float64) error {
 	}
 	if res.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+// Reorder writes one complete, deterministic bucket order in a transaction.
+// Locking the plan's rows prevents two clients from interleaving position
+// updates and leaving duplicate or partially applied positions behind.
+func (r *Repository) Reorder(planID string, orderedIDs []string) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		var buckets []core.Bucket
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
+			Where("plan_id = ?", planID).
+			Order("position ASC, id ASC").
+			Find(&buckets).Error; err != nil {
+			return err
+		}
+		if err := validateBucketOrder(buckets, orderedIDs); err != nil {
+			return err
+		}
+
+		for index, id := range orderedIDs {
+			position := float64(index * 1000)
+			result := tx.Model(&core.Bucket{}).
+				Where("id = ? AND plan_id = ?", id, planID).
+				Update("position", position)
+			if result.Error != nil {
+				return result.Error
+			}
+			if result.RowsAffected == 0 {
+				return ErrInvalidBucketOrder
+			}
+		}
+		return nil
+	})
+}
+
+func validateBucketOrder(buckets []core.Bucket, orderedIDs []string) error {
+	if len(buckets) != len(orderedIDs) {
+		return ErrInvalidBucketOrder
+	}
+	existing := make(map[string]struct{}, len(buckets))
+	for _, bucket := range buckets {
+		existing[bucket.ID] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(orderedIDs))
+	for _, id := range orderedIDs {
+		if _, ok := existing[id]; !ok {
+			return ErrInvalidBucketOrder
+		}
+		if _, duplicate := seen[id]; duplicate {
+			return ErrInvalidBucketOrder
+		}
+		seen[id] = struct{}{}
 	}
 	return nil
 }

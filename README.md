@@ -8,7 +8,7 @@ Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchop
 
 ## Features
 
-- **Kanban-Board** — Präzises Drag-and-Drop über eigene Griffe und Live-Einfügepositionen; feste, horizontal scrollbar angeordnete Buckets mit Labels und Fortschritts-Tracking
+- **Kanban-Board** — Präzises Drag-and-Drop über eigene Griffe und Live-Einfügepositionen; Aufgaben lassen sich innerhalb und zwischen Listen verschieben, die Listen selbst horizontal neu anordnen. Jede Reihenfolge wird transaktional gespeichert und per WebSocket synchronisiert.
 - **Grid View** — Tabellarische Aufgabenübersicht mit Sortierung, Filterung und Mehrfachauswahl
 - **Schedule View** — Kalenderansicht (Monat/Woche/Tag) mit react-big-calendar
 - **Timeline (Gantt)** — Gantt-Diagramm mit Abhängigkeiten, kritischem Pfad und Drag-and-Drop-Terminierung
@@ -161,6 +161,7 @@ Pfadvarianten ausgeliefert.
 |----------|---------------------------------------------------|------------------------------------------|
 | `GET`    | `/api/v1/planner/:planId/buckets`                 | Buckets auflisten (🔒)                   |
 | `POST`   | `/api/v1/planner/:planId/buckets`                 | Bucket erstellen (🔒)                    |
+| `PUT`    | `/api/v1/planner/:planId/buckets/reorder`         | Vollständige Bucket-Reihenfolge speichern (🔒) |
 | `PUT`    | `/api/v1/planner/:planId/buckets/:id`             | Bucket aktualisieren (🔒)                |
 | `DELETE` | `/api/v1/planner/:planId/buckets/:id`             | Bucket löschen (🔒)                      |
 | `GET`    | `/api/v1/planner/:planId/sprints`                 | Sprints auflisten (🔒)                   |

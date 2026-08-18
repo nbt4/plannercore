@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+var ErrInvalidBucketOrder = errors.New("bucket order must contain every bucket in the plan exactly once")
+
 type Service struct {
 	repo     *Repository
 	eventBus *core.EventBus
@@ -56,6 +58,23 @@ func (s *Service) DeleteBucket(planID, id string) error {
 		PlanID:  planID,
 		Payload: map[string]string{"id": id},
 	})
+	return nil
+}
+
+func (s *Service) ReorderBuckets(planID string, orderedIDs []string) error {
+	if err := s.repo.Reorder(planID, orderedIDs); err != nil {
+		return err
+	}
+	for index, id := range orderedIDs {
+		s.eventBus.Publish(planID, core.PlanEvent{
+			Type:   core.EventBucketUpdated,
+			PlanID: planID,
+			Payload: map[string]interface{}{
+				"id":       id,
+				"position": float64(index * 1000),
+			},
+		})
+	}
 	return nil
 }
 

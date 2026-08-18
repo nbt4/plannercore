@@ -22,6 +22,7 @@ interface TasksContextValue {
   updateBucket: (bucketId: string, name: string) => Promise<void>;
   deleteBucket: (bucketId: string) => Promise<void>;
   moveBucket: (bucketId: string, direction: 'left' | 'right') => Promise<void>;
+  reorderBuckets: (bucketIds: string[]) => Promise<void>;
 }
 
 const TasksContext = createContext<TasksContextValue | null>(null);
@@ -198,6 +199,27 @@ export function TasksProvider({ children }: { children: ReactNode }) {
     [activePlanId, refetch],
   );
 
+  const reorderBuckets = useCallback(
+    async (bucketIds: string[]) => {
+      if (!activePlanId) throw new Error('no active plan');
+      const positions = new Map(bucketIds.map((id, index) => [id, index * 1000]));
+      setState((prev) => ({
+        ...prev,
+        buckets: prev.buckets.map((bucket) => ({
+          ...bucket,
+          position: positions.get(bucket.id) ?? bucket.position,
+        })),
+      }));
+      try {
+        await api.buckets.reorder(activePlanId, bucketIds);
+      } catch (e) {
+        refetch();
+        throw e;
+      }
+    },
+    [activePlanId, refetch],
+  );
+
   // bucket.updated (e.g. from MoveBucket) patches a bucket's `position` in
   // place without reordering the array — sort here so every consumer sees
   // column order reflect the latest position, not just the tab that
@@ -223,6 +245,7 @@ export function TasksProvider({ children }: { children: ReactNode }) {
         updateBucket,
         deleteBucket,
         moveBucket,
+        reorderBuckets,
       }}
     >
       {children}

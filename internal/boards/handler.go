@@ -22,9 +22,29 @@ func NewHandler(service *Service, sv *auth.SessionValidator) *Handler {
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/:planId/buckets", h.ListBuckets)
 	rg.POST("/:planId/buckets", h.CreateBucket)
+	rg.PUT("/:planId/buckets/reorder", h.ReorderBuckets)
 	rg.PUT("/:planId/buckets/:id", h.UpdateBucket)
 	rg.DELETE("/:planId/buckets/:id", h.DeleteBucket)
 	rg.POST("/:planId/buckets/:id/move", h.MoveBucket)
+}
+
+func (h *Handler) ReorderBuckets(c *gin.Context) {
+	var input struct {
+		BucketIDs []string `json:"bucketIds" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bucketIds is required"})
+		return
+	}
+	if err := h.service.ReorderBuckets(c.Param("planId"), input.BucketIDs); err != nil {
+		if errors.Is(err, ErrInvalidBucketOrder) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "reordered"})
 }
 
 func (h *Handler) ListBuckets(c *gin.Context) {

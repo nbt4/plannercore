@@ -12,9 +12,15 @@ import {
   MouseSensor,
   TouchSensor,
   closestCorners,
+  type CollisionDetection,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  horizontalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { api } from '../../services/plannerApi';
 import { usePlanTasks } from '../../contexts/TasksContext';
 import BucketColumn from './BucketColumn';
@@ -34,12 +40,13 @@ import {
 
 export default function BoardView() {
   const { planId } = useParams<{ planId: string }>();
-  const { tasks, buckets, reorderTask } = usePlanTasks();
+  const { tasks, buckets, reorderTask, reorderBuckets } = usePlanTasks();
   const [labels, setLabels] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
   const [dragGroups, setDragGroups] = useState<TaskGroups | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
+  const [activeBucketId, setActiveBucketId] = useState<string | null>(null);
   const dragGroupsRef = useRef<TaskGroups | null>(null);
 
   // Labels aren't part of live-sync (no label.* events exist yet) — kept as
@@ -80,7 +87,22 @@ export default function BoardView() {
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 8 } }),
   );
 
+  const collisionDetection = useCallback<CollisionDetection>((args) => {
+    const activeType = args.active.data.current?.type;
+    const droppableContainers = args.droppableContainers.filter((container) => (
+      activeType === 'bucket'
+        ? container.data.current?.type === 'bucket'
+        : container.data.current?.type !== 'bucket'
+    ));
+    return closestCorners({ ...args, droppableContainers });
+  }, []);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    if (event.active.data.current?.type === 'bucket') {
+      setActiveBucketId(String(event.active.data.current.bucketId));
+      setActiveTaskId(null);
+      return;
+    }
     const activeId = String(event.active.id);
     const grouped = groupTasksForDrag(tasks as TaskCardData[], bucketIds);
     dragGroupsRef.current = grouped;
@@ -89,6 +111,7 @@ export default function BoardView() {
   }, [bucketIds, tasks]);
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
+    if (event.active.data.current?.type !== 'task') return;
     if (!event.over || !dragGroupsRef.current) return;
     const next = moveTaskInGroups(
       dragGroupsRef.current,
@@ -104,15 +127,30 @@ export default function BoardView() {
     dragGroupsRef.current = null;
     setDragGroups(null);
     setActiveTaskId(null);
+    setActiveBucketId(null);
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    if (event.active.data.current?.type === 'bucket') {
+      const draggedBucketId = String(event.active.data.current.bucketId);
+      const targetBucketId = event.over?.data.current?.bucketId
+        ? String(event.over.data.current.bucketId)
+        : null;
+      resetDrag();
+      if (!targetBucketId || draggedBucketId === targetBucketId) return;
+      const fromIndex = buckets.findIndex((bucket) => bucket.id === draggedBucketId);
+      const toIndex = buckets.findIndex((bucket) => bucket.id === targetBucketId);
+      if (fromIndex < 0 || toIndex < 0) return;
+      const orderedIds = arrayMove(buckets, fromIndex, toIndex).map((bucket) => bucket.id);
+      reorderBuckets(orderedIds).catch(() => {});
+      return;
+    }
     const finalGroups = dragGroupsRef.current;
     const shouldPersist = Boolean(event.over && finalGroups && planId);
     resetDrag();
     if (!shouldPersist || !finalGroups) return;
     reorderTask(reorderPayload(finalGroups, bucketIds)).catch(() => {});
-  }, [bucketIds, planId, reorderTask, resetDrag]);
+  }, [bucketIds, buckets, planId, reorderBuckets, reorderTask, resetDrag]);
 
   // Build merged list: bucket + its tasks
   const columns = useMemo(() => {
@@ -169,7 +207,7 @@ export default function BoardView() {
       />
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={collisionDetection}
         measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
@@ -191,17 +229,22 @@ export default function BoardView() {
             overscrollBehaviorX: 'contain',
           }}
         >
-          {columns.map((col, idx) => (
-            <BucketColumn
-              key={col.bucket.id}
-              bucket={col.bucket}
-              tasks={col.tasks}
-              planId={planId}
-              isFirst={idx === 0}
-              isLast={idx === columns.length - 1}
-              onTaskClick={(taskId) => setSelectedTaskId(taskId)}
-            />
-          ))}
+          <SortableContext
+            items={buckets.map((bucket) => `bucket:${bucket.id}`)}
+            strategy={horizontalListSortingStrategy}
+          >
+            {columns.map((col) => (
+              <BucketColumn
+                key={col.bucket.id}
+                bucket={col.bucket}
+                tasks={col.tasks}
+                planId={planId}
+                isFirst={col.bucket.id === buckets[0]?.id}
+                isLast={col.bucket.id === buckets[buckets.length - 1]?.id}
+                onTaskClick={(taskId) => setSelectedTaskId(taskId)}
+              />
+            ))}
+          </SortableContext>
           <AddBucketInline planId={planId} />
         </div>
         <DragOverlay dropAnimation={null}>
@@ -221,6 +264,24 @@ export default function BoardView() {
               }}
             >
               {tasks.find((task) => task.id === activeTaskId)?.title}
+            </div>
+          )}
+          {activeBucketId && (
+            <div
+              style={{
+                width: 340,
+                padding: 'var(--space-3)',
+                backgroundColor: 'var(--surface-1)',
+                border: '1px solid var(--color-info)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-xl)',
+                color: 'var(--text-primary)',
+                fontSize: 'var(--text-sm)',
+                fontWeight: 'var(--weight-semibold)',
+                cursor: 'grabbing',
+              }}
+            >
+              {buckets.find((bucket) => bucket.id === activeBucketId)?.name}
             </div>
           )}
         </DragOverlay>
