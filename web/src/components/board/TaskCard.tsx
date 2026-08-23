@@ -16,6 +16,7 @@ interface TaskCardProps {
 }
 
 export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardProps) {
+  const completed = task.status === 'completed';
   const {
     attributes,
     listeners,
@@ -30,7 +31,8 @@ export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardP
     // prevents its transform from expanding the column's scrollable bounds.
     transform: isDragging ? undefined : CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : completed ? 0.62 : 1,
+    filter: completed ? 'saturate(0.55)' : undefined,
     position: 'relative' as const,
     backgroundColor: STYLES.cardBg,
     borderRadius: STYLES.cardRadius,
@@ -72,7 +74,7 @@ export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardP
       >
         {onToggleCompleted ? (
           <TaskCompletionCheckbox
-            completed={task.status === 'completed'}
+            completed={completed}
             taskTitle={task.title}
             onToggle={onToggleCompleted}
           />
@@ -95,7 +97,8 @@ export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardP
             minWidth: 0,
             fontSize: 'var(--text-sm)',
             fontWeight: 'var(--weight-medium)',
-            color: 'var(--text-primary)',
+            color: completed ? 'var(--text-muted)' : 'var(--text-primary)',
+            textDecoration: completed ? 'line-through' : 'none',
             lineHeight: 'var(--leading-snug)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',

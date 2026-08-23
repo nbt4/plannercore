@@ -8,7 +8,7 @@ Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchop
 
 ## Features
 
-- **Kanban-Board** — Präzises Drag-and-Drop über eigene Griffe und Live-Einfügepositionen; Aufgaben lassen sich innerhalb und zwischen Listen verschieben, die Listen selbst horizontal neu anordnen. Jede Reihenfolge wird transaktional gespeichert und per WebSocket synchronisiert.
+- **Kanban-Board** — Präzises Drag-and-Drop über eigene Griffe und Live-Einfügepositionen; Aufgaben lassen sich innerhalb und zwischen Listen verschieben, die Listen selbst horizontal neu anordnen. Eingeblendete abgeschlossene Aufgaben stehen immer am Ende ihrer Spalte und sind dezent gedimmt. Jede Reihenfolge wird transaktional gespeichert und per WebSocket synchronisiert.
 - **Grid View** — Tabellarische Aufgabenübersicht mit Sortierung, Filterung und Mehrfachauswahl
 - **Schedule View** — Kalenderansicht (Monat/Woche/Tag) mit react-big-calendar
 - **Timeline (Gantt)** — Gantt-Diagramm mit Abhängigkeiten, kritischem Pfad und Drag-and-Drop-Terminierung

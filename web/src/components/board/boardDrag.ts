@@ -6,6 +6,12 @@ export type TaskGroups = Record<string, TaskCardData[]>;
 
 const taskBucketId = (task: TaskCardData) => task.bucketId || UNASSIGNED_BUCKET_ID;
 
+export function placeCompletedTasksLast(tasks: TaskCardData[]): TaskCardData[] {
+  return [...tasks].sort((a, b) => (
+    Number(a.status === 'completed') - Number(b.status === 'completed')
+  ));
+}
+
 export function groupTasksForDrag(tasks: TaskCardData[], bucketIds: string[]): TaskGroups {
   const groups: TaskGroups = {};
   [...bucketIds, UNASSIGNED_BUCKET_ID].forEach((id) => {
@@ -21,7 +27,12 @@ export function groupTasksForDrag(tasks: TaskCardData[], bucketIds: string[]): T
   Object.values(groups).forEach((items) => {
     items.sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
   });
-  return groups;
+  return Object.fromEntries(
+    Object.entries(groups).map(([bucketId, items]) => [
+      bucketId,
+      placeCompletedTasksLast(items),
+    ]),
+  );
 }
 
 function findTaskBucket(groups: TaskGroups, taskId: string): string | undefined {
@@ -47,7 +58,7 @@ export function moveTaskInGroups(groups: TaskGroups, activeId: string, overId: s
     if (destinationIndex < 0 || destinationIndex === sourceIndex) return groups;
     const [moved] = sourceItems.splice(sourceIndex, 1);
     sourceItems.splice(destinationIndex, 0, moved);
-    return { ...groups, [sourceBucketId]: sourceItems };
+    return { ...groups, [sourceBucketId]: placeCompletedTasksLast(sourceItems) };
   }
 
   const destinationItems = [...groups[destinationBucketId]];
@@ -62,8 +73,8 @@ export function moveTaskInGroups(groups: TaskGroups, activeId: string, overId: s
 
   return {
     ...groups,
-    [sourceBucketId]: sourceItems,
-    [destinationBucketId]: destinationItems,
+    [sourceBucketId]: placeCompletedTasksLast(sourceItems),
+    [destinationBucketId]: placeCompletedTasksLast(destinationItems),
   };
 }
 
