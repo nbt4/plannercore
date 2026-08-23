@@ -83,10 +83,13 @@ func (r *Repository) CopyAssignees(fromTaskID, toTaskID string) error {
 	return nil
 }
 
-func (r *Repository) FindByAssignee(userID string) ([]core.Task, error) {
+func (r *Repository) FindByAssignee(userID string, includeCompleted bool) ([]core.Task, error) {
 	var tasks []core.Task
-	err := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?)", userID).
-		Where("completed_at IS NULL").Order("due_date ASC").
+	query := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?)", userID)
+	if !includeCompleted {
+		query = query.Where("completed_at IS NULL")
+	}
+	err := query.Order("CASE WHEN completed_at IS NULL THEN 0 ELSE 1 END ASC, due_date ASC").
 		Preload("Assignees").Preload("Labels").Find(&tasks).Error
 	return tasks, err
 }

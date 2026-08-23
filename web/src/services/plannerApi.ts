@@ -184,7 +184,8 @@ export const api = {
   },
 
   my: {
-    tasks: () => request<any[]>(`${BASE}/my/tasks`),
+    tasks: (includeCompleted = false) =>
+      request<any[]>(`${BASE}/my/tasks${includeCompleted ? '?includeCompleted=true' : ''}`),
     day: () => request<any[]>(`${BASE}/my/day`),
     addDay: (taskId: string) =>
       request<any>(`${BASE}/my/day/${taskId}`, { method: 'POST' }),

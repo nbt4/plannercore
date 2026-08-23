@@ -6,14 +6,18 @@ import { PRIORITY_COLORS } from '../../lib/constants';
 import PriorityBadge from '../shared/PriorityBadge';
 import EmptyState from '../shared/EmptyState';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
+import CompletedTasksToggle from '../shared/CompletedTasksToggle';
+import { completedTaskCount, tasksByCompletion } from '../../lib/taskCompletion';
 
 export default function TimelineView() {
   const { planId } = useParams<{ planId: string }>();
   const { tasks } = usePlanTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const completedCount = useMemo(() => completedTaskCount(tasks), [tasks]);
 
   const { timedTasks, dateRange } = useMemo(() => {
-    const withDates = tasks.filter(
+    const withDates = tasksByCompletion(tasks, showCompleted).filter(
       (t) => t.startDate || t.dueDate,
     );
 
@@ -41,7 +45,7 @@ export default function TimelineView() {
     maxDate = new Date(maxDate.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     return { timedTasks: withDates, dateRange: { start: minDate, end: maxDate } };
-  }, [tasks]);
+  }, [tasks, showCompleted]);
 
   // Generate week columns
   const weekColumns = useMemo(() => {
@@ -119,11 +123,22 @@ export default function TimelineView() {
 
   if (timedTasks.length === 0) {
     return (
-      <EmptyState
-        icon={GanttChart}
-        title="Keine Zeitachsendaten"
-        description="Weisen Sie Aufgaben Start- und Enddaten zu, um sie in der Zeitachse anzuzeigen."
-      />
+      <div style={{ height: '100%', padding: 'var(--space-4)' }}>
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <CompletedTasksToggle
+            showCompleted={showCompleted}
+            completedCount={completedCount}
+            onChange={setShowCompleted}
+          />
+        </div>
+        <EmptyState
+          icon={GanttChart}
+          title="Keine Zeitachsendaten"
+          description={completedCount > 0 && !showCompleted
+            ? 'Offene Aufgaben mit Start- oder Fälligkeitsdatum werden hier angezeigt. Abgeschlossene Aufgaben kannst du oben einblenden.'
+            : 'Weisen Sie Aufgaben Start- und Enddaten zu, um sie in der Zeitachse anzuzeigen.'}
+        />
+      </div>
     );
   }
 
@@ -136,6 +151,13 @@ export default function TimelineView() {
           padding: 'var(--space-4)',
         }}
       >
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <CompletedTasksToggle
+            showCompleted={showCompleted}
+            completedCount={completedCount}
+            onChange={setShowCompleted}
+          />
+        </div>
         <div
           style={{
             minWidth: 600,

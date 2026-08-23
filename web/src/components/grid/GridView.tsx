@@ -17,20 +17,24 @@ import Avatar from '../shared/Avatar';
 import EmptyState from '../shared/EmptyState';
 import FilterBar from '../shared/FilterBar';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
+import TaskCompletionCheckbox from '../shared/TaskCompletionCheckbox';
+import CompletedTasksToggle from '../shared/CompletedTasksToggle';
+import { completedTaskCount, tasksByCompletion } from '../../lib/taskCompletion';
 
 type SortField = 'title' | 'priority' | 'dueDate' | 'progress' | 'bucket';
 type SortDir = 'asc' | 'desc';
 type GroupBy = 'none' | 'bucket' | 'assignee' | 'priority' | 'status' | 'label';
-const COLUMN_COUNT = 8;
+const COLUMN_COUNT = 9;
 
 export default function GridView() {
   const { planId } = useParams<{ planId: string }>();
-  const { tasks, buckets } = usePlanTasks();
+  const { tasks, buckets, updateTask } = usePlanTasks();
   const [labels, setLabels] = useState<any[]>([]);
   const [sortField, setSortField] = useState<SortField>('title');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [groupBy, setGroupBy] = useState<GroupBy>('none');
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   // Labels aren't part of live-sync yet — kept as GridView's own fetch.
@@ -49,7 +53,15 @@ export default function GridView() {
   }, [buckets]);
 
   const assigneeOptions = useMemo(() => assigneeOptionsFromTasks(tasks), [tasks]);
-  const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
+  const completionFilteredTasks = useMemo(
+    () => tasksByCompletion(tasks, showCompleted),
+    [tasks, showCompleted],
+  );
+  const filteredTasks = useMemo(
+    () => filterTasks(completionFilteredTasks, filters),
+    [completionFilteredTasks, filters],
+  );
+  const completedCount = useMemo(() => completedTaskCount(tasks), [tasks]);
 
   const sortedTasks = useMemo(() => {
     return [...filteredTasks].sort((a, b) => {
@@ -205,6 +217,15 @@ export default function GridView() {
           idx % 2 === 0 ? 'transparent' : 'var(--surface-1)';
       }}
     >
+      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)', width: 36 }}>
+        <TaskCompletionCheckbox
+          completed={task.status === 'completed'}
+          taskTitle={task.title}
+          onToggle={(completed) => updateTask(task.id, {
+            status: completed ? 'completed' : 'not-started',
+          })}
+        />
+      </td>
       <td
         style={{
           padding: 'var(--space-3)',
@@ -357,6 +378,13 @@ export default function GridView() {
             labels={labels}
             assignees={assigneeOptions}
           />
+          <div style={{ marginBottom: 'var(--space-3)' }}>
+            <CompletedTasksToggle
+              showCompleted={showCompleted}
+              completedCount={completedCount}
+              onChange={setShowCompleted}
+            />
+          </div>
           <select
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value as GroupBy)}
@@ -391,6 +419,7 @@ export default function GridView() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
             <thead>
               <tr>
+                <PlainHeader label="Erledigt" />
                 <SortHeader field="title" label="Aufgabe" />
                 <PlainHeader label="Status" />
                 <SortHeader field="bucket" label="Spalte" />

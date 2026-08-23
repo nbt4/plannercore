@@ -303,8 +303,8 @@ func (s *Service) DeleteTask(id, userID string) error {
 	return nil
 }
 
-func (s *Service) GetMyTasks(userID string) ([]core.Task, error) {
-	tasks, err := s.repo.FindByAssignee(userID)
+func (s *Service) GetMyTasks(userID string, includeCompleted bool) ([]core.Task, error) {
+	tasks, err := s.repo.FindByAssignee(userID, includeCompleted)
 	if err != nil {
 		return nil, err
 	}

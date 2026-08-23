@@ -8,6 +8,8 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { usePlanTasks } from '../../contexts/TasksContext';
 import EmptyState from '../shared/EmptyState';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
+import CompletedTasksToggle from '../shared/CompletedTasksToggle';
+import { completedTaskCount, tasksByCompletion } from '../../lib/taskCompletion';
 
 const locales = { de };
 
@@ -23,9 +25,11 @@ export default function ScheduleView() {
   const { planId } = useParams<{ planId: string }>();
   const { tasks } = usePlanTasks();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const completedCount = useMemo(() => completedTaskCount(tasks), [tasks]);
 
   const events = useMemo(() => {
-    return tasks
+    return tasksByCompletion(tasks, showCompleted)
       .filter((t) => t.dueDate)
       .map((t) => {
         const dueDate = new Date(t.dueDate);
@@ -38,7 +42,7 @@ export default function ScheduleView() {
           resource: t,
         };
       });
-  }, [tasks]);
+  }, [tasks, showCompleted]);
 
   const handleSelectEvent = (event: any) => {
     setSelectedTaskId(event.id);
@@ -64,6 +68,13 @@ export default function ScheduleView() {
           flexDirection: 'column',
         }}
       >
+        <div style={{ marginBottom: 'var(--space-3)' }}>
+          <CompletedTasksToggle
+            showCompleted={showCompleted}
+            completedCount={completedCount}
+            onChange={setShowCompleted}
+          />
+        </div>
         <div
           style={{
             flex: 1,

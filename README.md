@@ -17,7 +17,7 @@ Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchop
 - **Goals** — OKR-ähnliche Zielverwaltung mit Fortschrittsanzeige
 - **People View** — Team-Auslastung und Kapazitätsplanung
 - **Bearbeiter-Picker** — Outlook-artige Suche mit großem Anzeigenamen, kleiner E-Mail-Zeile, Profilbild und Tastatursteuerung; Anzeigenamen bleiben nach Reload erhalten
-- **Persönliche Ansichten** — „Meine Aufgaben" (aggregiert) und „Mein Tag" (tägliche Fokus-Ansicht)
+- **Persönliche Ansichten** — „Meine Aufgaben" (aggregiert) und „Mein Tag" (tägliche Fokus-Ansicht); Aufgaben lassen sich direkt abhaken, erhalten den Status „Abgeschlossen“ und werden standardmäßig ausgeblendet. Ein Schalter blendet sie bei Bedarf wieder ein oder öffnet sie erneut.
 - **Schnellerfassung** — Neue Aufgaben sind in jeder Planansicht sowie in „Meine Aufgaben“ und „Mein Tag“ anlegbar; Enter speichert und hält das Eingabefeld für die nächste Aufgabe offen. Checklisten unterstützen denselben Ablauf ohne Dialog-Reload.
 - **Echtzeit-Kollaboration** — WebSocket-basierte Live-Updates für alle Board-Änderungen
 - **Integration Links** — Verknüpfung von Aufgaben mit RentalCore-Jobs und WarehouseCore-Devices
@@ -150,7 +150,7 @@ Pfadvarianten ausgeliefert.
 
 | Methode  | Pfad                                    | Beschreibung                             |
 |----------|-----------------------------------------|------------------------------------------|
-| `GET`    | `/api/v1/planner/my/tasks`              | Alle meine Tasks (🔒)                    |
+| `GET`    | `/api/v1/planner/my/tasks`              | Meine offenen Tasks; `includeCompleted=true` schließt abgeschlossene ein (🔒) |
 | `GET`    | `/api/v1/planner/my/day`                | Mein-Tag-Ansicht (🔒)                    |
 | `POST`   | `/api/v1/planner/my/day/:taskId`        | Zu „Mein Tag" hinzufügen (🔒)            |
 | `DELETE` | `/api/v1/planner/my/day/:taskId`        | Von „Mein Tag" entfernen (🔒)            |

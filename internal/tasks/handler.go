@@ -492,7 +492,8 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 
 func (h *Handler) GetMyTasks(c *gin.Context) {
 	user, _ := h.sessionVal.GetCurrentUser(c)
-	tasks, err := h.service.GetMyTasks(fmt.Sprintf("%d", user.UserID))
+	includeCompleted := c.Query("includeCompleted") == "true"
+	tasks, err := h.service.GetMyTasks(fmt.Sprintf("%d", user.UserID), includeCompleted)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

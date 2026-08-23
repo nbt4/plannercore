@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Sun, Plus, CheckCircle2, Circle, Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Sun, Plus, Search } from 'lucide-react';
 import { api } from '../services/plannerApi';
 import EmptyState from '../components/shared/EmptyState';
 import CreateTaskQuickAdd from '../components/tasks/CreateTaskQuickAdd';
+import TaskCompletionCheckbox from '../components/shared/TaskCompletionCheckbox';
+import CompletedTasksToggle from '../components/shared/CompletedTasksToggle';
+import { completedTaskCount, isTaskCompleted, tasksByCompletion } from '../lib/taskCompletion';
 
 interface DayTask {
   id: string;
@@ -10,7 +13,8 @@ interface DayTask {
   planId?: string;
   planName?: string;
   dueDate?: string;
-  completed?: boolean;
+  status?: string;
+  completedAt?: string | null;
 }
 
 interface GroupedTasks {
@@ -22,6 +26,7 @@ export default function MyDayPage() {
   const [tasks, setTasks] = useState<DayTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddInput, setShowAddInput] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
@@ -40,9 +45,16 @@ export default function MyDayPage() {
     fetchDay();
   }, []);
 
+  const visibleTasks = useMemo(
+    () => tasksByCompletion(tasks, showCompleted),
+    [tasks, showCompleted],
+  );
+  const completedCount = useMemo(() => completedTaskCount(tasks), [tasks]);
+  const openCount = tasks.length - completedCount;
+
   const groupedTasks: GroupedTasks[] = (() => {
     const map: Record<string, DayTask[]> = {};
-    tasks.forEach((t) => {
+    visibleTasks.forEach((t) => {
       const key = t.planName || 'Ohne Plan';
       if (!map[key]) map[key] = [];
       map[key].push(t);
@@ -53,24 +65,13 @@ export default function MyDayPage() {
     }));
   })();
 
-  const handleToggleComplete = async (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === taskId ? { ...t, completed: !t.completed } : t,
-      ),
-    );
-    try {
-      await api.tasks.update(taskId, {
-        progress: tasks.find((t) => t.id === taskId)?.completed ? 0 : 100,
-      });
-    } catch (e) {
-      /* revert */
-      setTasks((prev) =>
-        prev.map((t) =>
-          t.id === taskId ? { ...t, completed: !t.completed } : t,
-        ),
-      );
-    }
+  const handleToggleComplete = async (taskId: string, completed: boolean) => {
+    const updated = await api.tasks.update(taskId, {
+      status: completed ? 'completed' : 'not-started',
+    });
+    setTasks((current) => current.map((task) => (
+      task.id === taskId ? { ...task, ...updated } : task
+    )));
   };
 
   const handleRemoveFromDay = async (taskId: string) => {
@@ -113,7 +114,8 @@ export default function MyDayPage() {
           planId: task.planId,
           planName: task.planName,
           dueDate: task.dueDate,
-          completed: task.progress === 100,
+          status: task.status,
+          completedAt: task.completedAt,
         },
       ]);
       setSearchQuery('');
@@ -166,7 +168,7 @@ export default function MyDayPage() {
             <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap', justifyContent: 'center' }}>
               <CreateTaskQuickAdd
                 addToMyDay
-                onCreated={(task) => setTasks((current) => [...current, { ...task, completed: false }])}
+                onCreated={(task) => setTasks((current) => [...current, task])}
               />
               <button
               onClick={() => setShowAddInput(true)}
@@ -247,11 +249,23 @@ export default function MyDayPage() {
           color: 'var(--text-muted)',
         }}
       >
-        {tasks.filter((t) => !t.completed).length} Aufgabe
-        {tasks.filter((t) => !t.completed).length !== 1 ? 'n' : ''} offen
-        {tasks.filter((t) => t.completed).length > 0 &&
-          `, ${tasks.filter((t) => t.completed).length} erledigt`}
+        {openCount} Aufgabe{openCount !== 1 ? 'n' : ''} offen
+        {completedCount > 0 && `, ${completedCount} abgeschlossen`}
       </p>
+
+      <div style={{ marginBottom: 'var(--space-4)' }}>
+        <CompletedTasksToggle
+          showCompleted={showCompleted}
+          completedCount={completedCount}
+          onChange={setShowCompleted}
+        />
+      </div>
+
+      {groupedTasks.length === 0 && (
+        <div style={{ padding: 'var(--space-4)', color: 'var(--text-muted)', fontSize: 'var(--text-sm)', textAlign: 'center' }}>
+          Keine offenen Aufgaben. Über den Schalter oben kannst du abgeschlossene Aufgaben anzeigen.
+        </div>
+      )}
 
       {/* Grouped tasks */}
       {groupedTasks.map((group) => (
@@ -293,35 +307,20 @@ export default function MyDayPage() {
                   e.currentTarget.style.backgroundColor = 'transparent';
                 }}
               >
-                <button
-                  onClick={() => handleToggleComplete(task.id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: 0,
-                    display: 'flex',
-                    color: task.completed
-                      ? 'var(--color-success)'
-                      : 'var(--text-muted)',
-                    flexShrink: 0,
-                  }}
-                >
-                  {task.completed ? (
-                    <CheckCircle2 size={20} />
-                  ) : (
-                    <Circle size={20} />
-                  )}
-                </button>
+                <TaskCompletionCheckbox
+                  completed={isTaskCompleted(task)}
+                  taskTitle={task.title}
+                  onToggle={(completed) => handleToggleComplete(task.id, completed)}
+                />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <span
                     style={{
                       fontSize: 'var(--text-sm)',
-                      color: task.completed
+                      color: isTaskCompleted(task)
                         ? 'var(--text-muted)'
                         : 'var(--text-primary)',
-                      textDecoration: task.completed ? 'line-through' : 'none',
+                      textDecoration: isTaskCompleted(task) ? 'line-through' : 'none',
                       display: 'block',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -380,7 +379,7 @@ export default function MyDayPage() {
       <div style={{ marginTop: 'var(--space-3)', marginBottom: 'var(--space-2)' }}>
         <CreateTaskQuickAdd
           addToMyDay
-          onCreated={(task) => setTasks((current) => [...current, { ...task, completed: false }])}
+          onCreated={(task) => setTasks((current) => [...current, task])}
         />
       </div>
       {showAddInput ? (

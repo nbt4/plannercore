@@ -45,7 +45,7 @@ export default function BucketColumn({
   isLast,
   onTaskClick,
 }: BucketColumnProps) {
-  const { updateBucket, deleteBucket, moveBucket } = usePlanTasks();
+  const { updateBucket, deleteBucket, moveBucket, updateTask } = usePlanTasks();
   const isUnassigned = bucket.id === UNASSIGNED_BUCKET_ID;
   const { setNodeRef: setDropRef, isOver } = useDroppable({
     id: bucket.id,
@@ -417,6 +417,9 @@ export default function BucketColumn({
               key={task.id}
               task={task}
               onClick={() => onTaskClick?.(task.id)}
+              onToggleCompleted={(completed) => updateTask(task.id, {
+                status: completed ? 'completed' : 'not-started',
+              })}
             />
           ))}
         </SortableContext>

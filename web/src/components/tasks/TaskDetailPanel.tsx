@@ -9,6 +9,7 @@ import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
 import ProgressBar from '../shared/ProgressBar';
 import Avatar from '../shared/Avatar';
+import TaskCompletionCheckbox from '../shared/TaskCompletionCheckbox';
 import ChecklistSection from './ChecklistSection';
 import NotesSection from './NotesSection';
 import CommentsSection from './CommentsSection';
@@ -477,9 +478,20 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
             padding: 'var(--space-4)',
           }}
         >
-          {/* Title (inline editable) */}
-          {editingTitle ? (
-            <input
+          {/* Completion checkbox and inline-editable title */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--space-2)' }}>
+            <div style={{ paddingTop: 'var(--space-1)' }}>
+              <TaskCompletionCheckbox
+                completed={task.status === 'completed'}
+                taskTitle={task.title}
+                onToggle={(completed) => handleUpdate({
+                  status: completed ? 'completed' : 'not-started',
+                })}
+                size={22}
+              />
+            </div>
+            {editingTitle ? (
+              <input
               autoFocus
               value={titleValue}
               onChange={(e) => setTitleValue(e.target.value)}
@@ -492,7 +504,8 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                 }
               }}
               style={{
-                width: '100%',
+                flex: 1,
+                minWidth: 0,
                 padding: 'var(--space-1) var(--space-2)',
                 backgroundColor: 'var(--surface-2)',
                 border: 'none',
@@ -504,11 +517,13 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                 outline: 'none',
                 marginBottom: 'var(--space-3)',
               }}
-            />
-          ) : (
-            <h2
+              />
+            ) : (
+              <h2
               onClick={() => setEditingTitle(true)}
               style={{
+                flex: 1,
+                minWidth: 0,
                 margin: '0 0 var(--space-3)',
                 fontSize: 'var(--text-lg)',
                 fontWeight: 'var(--weight-semibold)',
@@ -516,10 +531,11 @@ export default function TaskDetailPanel({ taskId, onClose, planId, onTaskDeleted
                 cursor: 'text',
                 lineHeight: 'var(--leading-snug)',
               }}
-            >
-              {task.title}
-            </h2>
-          )}
+              >
+                {task.title}
+              </h2>
+            )}
+          </div>
 
           {/* Progress bar with slider */}
           <div style={{ marginBottom: 'var(--space-4)' }}>

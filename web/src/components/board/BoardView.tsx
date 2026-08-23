@@ -28,7 +28,9 @@ import AddBucketInline from './AddBucketInline';
 import EmptyState from '../shared/EmptyState';
 import FilterBar from '../shared/FilterBar';
 import TaskDetailPanel from '../tasks/TaskDetailPanel';
+import CompletedTasksToggle from '../shared/CompletedTasksToggle';
 import { EMPTY_FILTERS, assigneeOptionsFromTasks, filterTasks, type TaskFilters } from '../../lib/taskFilters';
+import { completedTaskCount, tasksByCompletion } from '../../lib/taskCompletion';
 import type { TaskCardData } from './types';
 import {
   groupTasksForDrag,
@@ -44,6 +46,7 @@ export default function BoardView() {
   const [labels, setLabels] = useState<any[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [filters, setFilters] = useState<TaskFilters>(EMPTY_FILTERS);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [dragGroups, setDragGroups] = useState<TaskGroups | null>(null);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [activeBucketId, setActiveBucketId] = useState<string | null>(null);
@@ -59,7 +62,15 @@ export default function BoardView() {
     }
   }, [planId]);
 
-  const filteredTasks = useMemo(() => filterTasks(tasks, filters), [tasks, filters]);
+  const completionFilteredTasks = useMemo(
+    () => tasksByCompletion(tasks, showCompleted),
+    [tasks, showCompleted],
+  );
+  const filteredTasks = useMemo(
+    () => filterTasks(completionFilteredTasks, filters),
+    [completionFilteredTasks, filters],
+  );
+  const completedCount = useMemo(() => completedTaskCount(tasks), [tasks]);
   const assigneeOptions = useMemo(() => assigneeOptionsFromTasks(tasks), [tasks]);
 
   const bucketIds = useMemo(() => buckets.map((bucket) => bucket.id), [buckets]);
@@ -205,6 +216,13 @@ export default function BoardView() {
         labels={labels}
         assignees={assigneeOptions}
       />
+      <div style={{ margin: 'calc(var(--space-2) * -1) 0 var(--space-3)' }}>
+        <CompletedTasksToggle
+          showCompleted={showCompleted}
+          completedCount={completedCount}
+          onChange={setShowCompleted}
+        />
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={collisionDetection}

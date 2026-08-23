@@ -6,14 +6,16 @@ import PriorityBadge from '../shared/PriorityBadge';
 import LabelBadge from '../shared/LabelBadge';
 import ProgressBar from '../shared/ProgressBar';
 import Avatar from '../shared/Avatar';
+import TaskCompletionCheckbox from '../shared/TaskCompletionCheckbox';
 import type { TaskCardData } from './types';
 
 interface TaskCardProps {
   task: TaskCardData;
   onClick?: () => void;
+  onToggleCompleted?: (completed: boolean) => Promise<unknown>;
 }
 
-export default function TaskCard({ task, onClick }: TaskCardProps) {
+export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -68,7 +70,13 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
           marginBottom: 'var(--space-2)',
         }}
       >
-        {task.status && (
+        {onToggleCompleted ? (
+          <TaskCompletionCheckbox
+            completed={task.status === 'completed'}
+            taskTitle={task.title}
+            onToggle={onToggleCompleted}
+          />
+        ) : task.status ? (
           <span
             title={STATUS_LABELS[task.status] || task.status}
             style={{
@@ -80,7 +88,7 @@ export default function TaskCard({ task, onClick }: TaskCardProps) {
               marginTop: 5,
             }}
           />
-        )}
+        ) : null}
         <div
           style={{
             flex: 1,
