@@ -52,12 +52,12 @@ body,
 
 html {
   background: var(--color-surface);
-  overscroll-behavior: none;
+  overscroll-behavior: auto;
 }
 
 body {
   margin: 0;
-  overscroll-behavior-y: none;
+  overscroll-behavior-y: auto;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
 }
@@ -94,9 +94,29 @@ select option {
 
 .planner-mobile-header,
 .planner-mobile-tabs,
+.planner-sidebar-toggle,
 .planner-sidebar-close,
 .planner-sidebar-backdrop {
   display: none;
+}
+
+.planner-sidebar {
+  transition: width 200ms ease;
+}
+
+.planner-sidebar-toggle {
+  position: absolute;
+  right: 0.35rem;
+  bottom: 0.25rem;
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-default);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 767px) {
@@ -156,6 +176,10 @@ select option {
     color: var(--text-secondary);
   }
 
+  .planner-sidebar-toggle {
+    display: none;
+  }
+
   .planner-sidebar-backdrop {
     position: fixed;
     z-index: 65;
@@ -182,13 +206,6 @@ select option {
     background: color-mix(in srgb, var(--surface-1) 94%, transparent);
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
-  }
-
-  .planner-mobile-header img {
-    width: auto;
-    max-width: min(55vw, 13rem);
-    height: 2.15rem;
-    object-fit: contain;
   }
 
   .planner-mobile-menu {

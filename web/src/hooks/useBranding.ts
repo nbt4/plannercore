@@ -38,6 +38,7 @@ function applyDocumentBranding(value: BrandingConfig) {
     let link = document.querySelector<HTMLLinkElement>(selector);
     if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
     link.href = href;
+    if (rel === 'icon') link.type = href.toLowerCase().includes('.png') ? 'image/png' : 'image/svg+xml';
   };
   setLink("link[rel~='icon']", 'icon', value.assets.favicon);
   setLink("link[rel='apple-touch-icon']", 'apple-touch-icon', value.assets.appIcon);
@@ -45,7 +46,7 @@ function applyDocumentBranding(value: BrandingConfig) {
 
 async function refresh() {
   try {
-    const response = await fetch('/api/v1/planner/branding', { cache: 'no-store' });
+    const response = await fetch(mounted ? '/api/v1/planner/branding' : '/api/v1/branding', { cache: 'no-store' });
     if (!response.ok) return;
     const raw = await response.json();
     cached = {

@@ -17,7 +17,6 @@ import GoalsView from './components/goals/GoalsView'
 import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
 import LoginPage from './pages/LoginPage'
-import { useBranding } from './hooks/useBranding'
 
 function PlanLayout() {
   return (
@@ -50,8 +49,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 
 function PlannerShell({ children, locked = false }: { children: React.ReactNode; locked?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => window.localStorage.getItem('planner-sidebar-collapsed') === 'true')
   const { activePlanId } = usePlanContext()
-  const branding = useBranding()
   const activePlanPath = activePlanId ? `/plan/${activePlanId}/board` : '/plan/new'
 
   useEffect(() => {
@@ -59,16 +58,24 @@ function PlannerShell({ children, locked = false }: { children: React.ReactNode;
     return () => document.body.classList.remove('planner-drawer-open')
   }, [mobileOpen])
 
+  useEffect(() => {
+    window.localStorage.setItem('planner-sidebar-collapsed', String(sidebarCollapsed))
+  }, [sidebarCollapsed])
+
   return (
     <div className={`planner-shell ${locked ? 'is-locked' : ''}`}>
       {mobileOpen && <button type="button" className="planner-sidebar-backdrop" onClick={() => setMobileOpen(false)} aria-label="Navigation schließen" />}
-      <Sidebar mobileOpen={mobileOpen} onMobileClose={() => setMobileOpen(false)} />
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed(value => !value)}
+      />
 
       <div className="planner-mobile-header">
         <button type="button" className="planner-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Navigation öffnen" aria-expanded={mobileOpen}>
           <Menu size={22} />
         </button>
-        <img src={branding.assets.horizontalOnDark} alt={branding.productName} />
       </div>
 
       <main className="planner-main">

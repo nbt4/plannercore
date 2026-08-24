@@ -8,6 +8,9 @@ Produktlogo, Favicon und PWA-Icons werden zentral verwaltet und sowohl auf der
 eigenen Domain als auch über den Dashboard-Pfad semantisch ausgeliefert. Die
 öffentliche Konfiguration ist unter `/api/v1/branding` beziehungsweise im
 eingebetteten Betrieb unter `/api/v1/planner/branding` verfügbar.
+Die Desktop-Sidebar lässt sich ein- und ausklappen und verwendet dieselbe
+176 × 48-px-Logo- bzw. 40 × 40-px-Symbolfläche wie alle Cores-Services; App-Header
+bleiben logofrei und der Browser-Tab verwendet ausschließlich das Produkt-Favicon.
 
 ---
 

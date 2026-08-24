@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,9 +11,11 @@ import { useBranding } from '../../hooks/useBranding';
 interface SidebarProps {
   mobileOpen?: boolean;
   onMobileClose?: () => void;
+  collapsed?: boolean;
+  onToggle?: () => void;
 }
 
-export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }: SidebarProps) {
+export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, collapsed = false, onToggle = () => {} }: SidebarProps) {
   const { plans, loading, refetch } = usePlans();
   const { activePlanId } = usePlanContext();
   const { user, logout } = useAuth();
@@ -21,6 +23,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
   const [showNewInput, setShowNewInput] = useState(false);
   const [newName, setNewName] = useState('');
   const branding = useBranding();
+  const compact = collapsed && !mobileOpen;
 
   const favorites = plans.filter((p) => p.isFavorite);
   const others = plans.filter((p) => !p.isFavorite);
@@ -53,7 +56,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
     <aside
       className={`planner-sidebar ${mobileOpen ? 'is-open' : ''}`}
       style={{
-        width: STYLES.sidebarWidth,
+        width: compact ? 80 : STYLES.sidebarWidth,
         height: '100vh',
         backgroundColor: 'var(--surface-1)',
         borderRight: 'var(--border-default)',
@@ -64,26 +67,30 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
       }}
     >
       {/* Logo */}
-      <div className="planner-sidebar-logo" style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
+      <div className="planner-sidebar-logo" style={{ position: 'relative', minHeight: 80, padding: 'var(--space-3)', borderBottom: 'var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={branding.assets.horizontalOnDark}
+          src={compact ? branding.assets.markOnDark : branding.assets.horizontalOnDark}
           alt={branding.productName}
-          style={{ height: 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }}
+          style={{ width: compact ? 40 : 176, height: compact ? 40 : 48, objectFit: 'contain', display: 'block', flexShrink: 0 }}
         />
+        <button type="button" className="planner-sidebar-toggle" onClick={onToggle} aria-label={compact ? 'Sidebar aufklappen' : 'Sidebar zuklappen'} aria-expanded={!compact}>
+          {compact ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+        </button>
         <button type="button" className="planner-sidebar-close" onClick={onMobileClose} aria-label="Navigation schließen">
           <X size={20} />
         </button>
       </div>
 
       {/* Navigation Links */}
-      <nav style={{ padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      <nav style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         <a
           href={(window as any).__DASHBOARD_URL__ || '/'}
           onClick={onMobileClose}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-2)',
+            gap: compact ? 0 : 'var(--space-2)',
+            justifyContent: compact ? 'center' : 'flex-start',
             padding: 'var(--space-2) var(--space-3)',
             borderRadius: 'var(--radius-md)',
             textDecoration: 'none',
@@ -97,7 +104,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           }}
         >
           <LayoutDashboard size={18} />
-          <span>Cores Dashboard</span>
+          {!compact && <span>Cores Dashboard</span>}
         </a>
         <NavLink
           to="/my/tasks"
@@ -105,7 +112,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           style={({ isActive }) => ({
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-2)',
+            gap: compact ? 0 : 'var(--space-2)',
+            justifyContent: compact ? 'center' : 'flex-start',
             padding: 'var(--space-2) var(--space-3)',
             borderRadius: 'var(--radius-md)',
             textDecoration: 'none',
@@ -117,7 +125,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           })}
         >
           <ClipboardList size={18} />
-          <span>Meine Aufgaben</span>
+          {!compact && <span>Meine Aufgaben</span>}
         </NavLink>
         <NavLink
           to="/my/day"
@@ -125,7 +133,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           style={({ isActive }) => ({
             display: 'flex',
             alignItems: 'center',
-            gap: 'var(--space-2)',
+            gap: compact ? 0 : 'var(--space-2)',
+            justifyContent: compact ? 'center' : 'flex-start',
             padding: 'var(--space-2) var(--space-3)',
             borderRadius: 'var(--radius-md)',
             textDecoration: 'none',
@@ -137,15 +146,15 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
           })}
         >
           <Sun size={18} />
-          <span>Mein Tag</span>
+          {!compact && <span>Mein Tag</span>}
         </NavLink>
       </nav>
 
       {/* Divider */}
-      <div style={{ height: 1, backgroundColor: 'var(--border-divider)', margin: '0 var(--space-3)' }} />
+      {!compact && <div style={{ height: 1, backgroundColor: 'var(--border-divider)', margin: '0 var(--space-3)' }} />}
 
       {/* Scrollable plan list */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+      {!compact && <div style={{ flex: 1, overflow: 'auto', padding: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
         {/* Favorites Section */}
         {favorites.length > 0 && (
           <>
@@ -197,10 +206,10 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
             <PlanLink key={plan.id} plan={plan} activePlanId={activePlanId} onNavigate={onMobileClose} />
           ))
         )}
-      </div>
+      </div>}
 
       {/* New Plan Input / Button */}
-      <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)' }}>
+      {!compact && <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)' }}>
         {showNewInput ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             <input
@@ -281,13 +290,15 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
             <span>Neuer Plan</span>
           </button>
         )}
-      </div>
+      </div>}
+
+      {compact && <div style={{ flex: 1 }} />}
 
       {user && (
-        <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
-          Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.username}</strong>
-          <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', width: '100%', marginTop: 'var(--space-2)', padding: 'var(--space-2) 0', border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--text-xs)' }}>
-            <LogOut size={14} /> Abmelden
+        <div style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', borderTop: 'var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+          {!compact && <>Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.username}</strong></>}
+          <button onClick={handleLogout} title={compact ? 'Abmelden' : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: compact ? 'center' : 'flex-start', gap: 'var(--space-2)', width: '100%', marginTop: compact ? 0 : 'var(--space-2)', padding: 'var(--space-2) 0', border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--text-xs)' }}>
+            <LogOut size={14} /> {!compact && 'Abmelden'}
           </button>
         </div>
       )}
