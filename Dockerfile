@@ -36,7 +36,8 @@ COPY --from=builder /app/server .
 COPY --from=frontend-builder /app/web/dist web/dist
 COPY --chown=appuser:appgroup migrations/ migrations/
 
-RUN mkdir -p uploads logs && chown -R appuser:appgroup /app
+RUN mkdir -p uploads logs /var/lib/branding/logos && \
+    chown -R appuser:appgroup /app /var/lib/branding
 
 USER appuser
 

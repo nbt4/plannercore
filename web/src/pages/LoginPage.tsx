@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useBranding } from '../hooks/useBranding'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -7,6 +8,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { refetch } = useAuth()
+  const branding = useBranding()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -71,9 +73,9 @@ export default function LoginPage() {
       >
         <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-2)' }}>
           <img
-            src="/logos/plannercore_white_side.svg"
-            alt="PlannerCore"
-            style={{ height: 64 }}
+            src={branding.assets.stackedOnDark}
+            alt={branding.productName}
+            style={{ height: 128, maxWidth: 280, objectFit: 'contain' }}
           />
           <p
             style={{
@@ -81,7 +83,9 @@ export default function LoginPage() {
               color: 'var(--text-muted)',
             }}
           >
-            Mit Cores-Konto anmelden
+            {branding.brandName || branding.companyName !== branding.productName
+              ? `by ${branding.brandName || branding.companyName}`
+              : 'Mit Cores-Konto anmelden'}
           </p>
         </div>
 

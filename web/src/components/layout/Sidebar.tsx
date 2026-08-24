@@ -6,10 +6,7 @@ import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/plannerApi';
 import { STYLES } from '../../lib/constants';
-
-const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
-  ? '/planner/logos'
-  : '/logos';
+import { useBranding } from '../../hooks/useBranding';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -23,6 +20,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
   const navigate = useNavigate();
   const [showNewInput, setShowNewInput] = useState(false);
   const [newName, setNewName] = useState('');
+  const branding = useBranding();
 
   const favorites = plans.filter((p) => p.isFavorite);
   const others = plans.filter((p) => !p.isFavorite);
@@ -68,9 +66,9 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {} }
       {/* Logo */}
       <div className="planner-sidebar-logo" style={{ padding: 'var(--space-4) var(--space-3)', borderBottom: 'var(--border-default)' }}>
         <img
-          src={`${logoBase}/plannercore_white_side.svg`}
-          alt="PlannerCore"
-          style={{ height: 40, display: 'block' }}
+          src={branding.assets.horizontalOnDark}
+          alt={branding.productName}
+          style={{ height: 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }}
         />
         <button type="button" className="planner-sidebar-close" onClick={onMobileClose} aria-label="Navigation schließen">
           <X size={20} />

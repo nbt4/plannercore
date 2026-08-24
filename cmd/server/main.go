@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
 
+	commonbranding "github.com/nbt4/cores-common/pkg/branding"
 	commonhealth "github.com/nbt4/cores-common/pkg/health"
 
 	"plannercore/internal/analytics"
@@ -71,6 +73,7 @@ func main() {
 		os.Exit(1)
 	}
 	metrics.DBConnectionsOpen.Set(float64(sqlDB.Stats().OpenConnections))
+	brandingService := commonbranding.NewService(db, "planner")
 
 	eventBus := core.NewEventBus()
 	sessionValidator := auth.NewSessionValidator(db)
@@ -92,8 +95,14 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.12")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.13")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	brandingHandler := func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+		c.JSON(http.StatusOK, brandingService.GetConfig())
+	}
+	r.GET("/api/v1/branding", brandingHandler)
+	r.GET("/api/v1/planner/branding", brandingHandler)
 
 	// Login/Logout (same logic as cores-dashboard)
 	r.POST("/api/v1/auth/login", func(c *gin.Context) {
@@ -257,17 +266,43 @@ func main() {
 	// Serve static assets (both /assets and /planner/assets for cached clients)
 	r.Static("/assets", "./web/dist/assets")
 	r.Static("/planner/assets", "./web/dist/assets")
-	r.Static("/logos", "./web/dist/logos")
-	r.Static("/planner/logos", "./web/dist/logos")
+	serveLogo := func(c *gin.Context) {
+		filename := filepath.Base(c.Param("filepath"))
+		if filename == "." || filename == "" {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		for _, directory := range []string{"/var/lib/branding/logos", "./web/dist/logos"} {
+			candidate := filepath.Join(directory, filename)
+			if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+				c.Header("X-Content-Type-Options", "nosniff")
+				c.File(candidate)
+				return
+			}
+		}
+		c.Status(http.StatusNotFound)
+	}
+	r.GET("/logos/*filepath", serveLogo)
+	r.GET("/planner/logos/*filepath", serveLogo)
 	r.Static("/app-icons", "./web/dist/app-icons")
 	r.Static("/planner/app-icons", "./web/dist/app-icons")
 	r.GET("/manifest.webmanifest", func(c *gin.Context) {
 		c.Header("Content-Type", "application/manifest+json")
-		c.File("./web/dist/manifest.webmanifest")
+		c.Header("Cache-Control", "no-cache")
+		c.JSON(http.StatusOK, commonbranding.Manifest(brandingService.GetConfig(), commonbranding.ManifestOptions{
+			Name: "PlannerCore", StartURL: "/", Scope: "/",
+			FallbackIcon192: "/app-icons/icon-192.png", FallbackIcon512: "/app-icons/icon-512.png",
+			FallbackMaskable: "/app-icons/icon-maskable-512.png",
+		}))
 	})
 	r.GET("/planner/manifest.webmanifest", func(c *gin.Context) {
 		c.Header("Content-Type", "application/manifest+json")
-		c.File("./web/dist/manifest.webmanifest")
+		c.Header("Cache-Control", "no-cache")
+		c.JSON(http.StatusOK, commonbranding.Manifest(brandingService.GetConfig(), commonbranding.ManifestOptions{
+			Name: "PlannerCore", StartURL: "/planner/", Scope: "/planner/",
+			FallbackIcon192: "/planner/app-icons/icon-192.png", FallbackIcon512: "/planner/app-icons/icon-512.png",
+			FallbackMaskable: "/planner/app-icons/icon-maskable-512.png",
+		}))
 	})
 	r.GET("/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")

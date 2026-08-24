@@ -7,10 +7,7 @@ import { api } from '../../services/plannerApi';
 import ViewSwitcher from './ViewSwitcher';
 import PlanMembersModal from './PlanMembersModal';
 import AddTaskInline from '../board/AddTaskInline';
-
-const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
-  ? '/planner/logos'
-  : '/logos';
+import { useBranding } from '../../hooks/useBranding';
 
 export default function PlanHeader() {
   const { planId } = useParams<{ planId: string }>();
@@ -18,6 +15,7 @@ export default function PlanHeader() {
   const plan = usePlan(planId || '');
   const { refetch } = usePlans();
   const [membersOpen, setMembersOpen] = useState(false);
+  const branding = useBranding();
 
   const isNewPlan = !planId || planId === 'new';
 
@@ -36,8 +34,8 @@ export default function PlanHeader() {
         }}
       >
         <img
-          src={`${logoBase}/plannercore_white_icon.svg`}
-          alt="PlannerCore"
+          src={branding.assets.markOnDark}
+          alt={branding.productName}
           style={{ height: 28 }}
         />
         <div className="planner-view-switcher">
@@ -96,8 +94,8 @@ export default function PlanHeader() {
       {/* Logo & Plan Name & Star */}
       <div className="planner-plan-title" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', minWidth: 0 }}>
         <img
-          src={`${logoBase}/plannercore_black_icon.svg`}
-          alt="PlannerCore"
+          src={branding.assets.markOnLight}
+          alt={branding.productName}
           style={{ height: 28, flexShrink: 0 }}
         />
         <h1

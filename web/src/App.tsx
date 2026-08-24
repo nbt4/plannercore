@@ -17,6 +17,7 @@ import GoalsView from './components/goals/GoalsView'
 import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
 import LoginPage from './pages/LoginPage'
+import { useBranding } from './hooks/useBranding'
 
 function PlanLayout() {
   return (
@@ -50,10 +51,8 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 function PlannerShell({ children, locked = false }: { children: React.ReactNode; locked?: boolean }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const { activePlanId } = usePlanContext()
+  const branding = useBranding()
   const activePlanPath = activePlanId ? `/plan/${activePlanId}/board` : '/plan/new'
-  const logoBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
-    ? '/planner/logos'
-    : '/logos'
 
   useEffect(() => {
     document.body.classList.toggle('planner-drawer-open', mobileOpen)
@@ -69,7 +68,7 @@ function PlannerShell({ children, locked = false }: { children: React.ReactNode;
         <button type="button" className="planner-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Navigation öffnen" aria-expanded={mobileOpen}>
           <Menu size={22} />
         </button>
-        <img src={`${logoBase}/plannercore_white_side.svg`} alt="PlannerCore" />
+        <img src={branding.assets.horizontalOnDark} alt={branding.productName} />
       </div>
 
       <main className="planner-main">

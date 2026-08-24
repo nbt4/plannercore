@@ -8,7 +8,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/nbt4/cores-common v0.0.0-20260615221321-b29c7ed5ed26
+	github.com/nbt4/cores-common v1.1.0
 	github.com/prometheus/client_golang v1.23.2
 	golang.org/x/crypto v0.48.0
 	gorm.io/driver/postgres v1.6.0

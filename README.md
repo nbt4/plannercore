@@ -4,6 +4,11 @@
 
 Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchoptimierte App-Shell, Safe-Area-Unterstützung und ein eigenes Homescreen-Icon – sowohl auf der eigenen Domain als auch eingebettet unter `/planner/`.
 
+Produktlogo, Favicon und PWA-Icons werden zentral verwaltet und sowohl auf der
+eigenen Domain als auch über den Dashboard-Pfad semantisch ausgeliefert. Die
+öffentliche Konfiguration ist unter `/api/v1/branding` beziehungsweise im
+eingebetteten Betrieb unter `/api/v1/planner/branding` verfügbar.
+
 ---
 
 ## Features
