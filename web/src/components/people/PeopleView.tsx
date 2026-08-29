@@ -106,7 +106,7 @@ export default function PeopleView() {
               style={{
                 backgroundColor: 'var(--surface-0)',
                 borderRadius: 'var(--radius-lg)',
-                border: 'var(--border-default)',
+                border: '1px solid var(--border-default)',
                 padding: 'var(--space-4)',
                 display: 'flex',
                 gap: 'var(--space-3)',

@@ -397,7 +397,7 @@ export default function MyDayPage() {
               padding: 'var(--space-2) var(--space-3)',
               backgroundColor: 'var(--surface-2)',
               borderRadius: 'var(--radius-md)',
-              border: 'var(--border-input)',
+              border: '1px solid var(--border-input)',
             }}
           >
             <Search size={16} style={{ color: 'var(--text-muted)' }} />
@@ -452,7 +452,7 @@ export default function MyDayPage() {
                 right: 0,
                 marginTop: 'var(--space-1)',
                 backgroundColor: 'var(--surface-0)',
-                border: 'var(--border-default)',
+                border: '1px solid var(--border-default)',
                 borderRadius: 'var(--radius-md)',
                 boxShadow: 'var(--shadow-lg)',
                 zIndex: 10,
@@ -470,7 +470,7 @@ export default function MyDayPage() {
                     padding: 'var(--space-2) var(--space-3)',
                     backgroundColor: 'transparent',
                     border: 'none',
-                    borderBottom: 'var(--border-subtle)',
+                    borderBottom: '1px solid var(--border-subtle)',
                     cursor: 'pointer',
                     fontSize: 'var(--text-sm)',
                     color: 'var(--text-primary)',

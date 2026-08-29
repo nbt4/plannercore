@@ -34,7 +34,7 @@ export default function ViewSwitcher() {
         padding: '2px',
         backgroundColor: 'var(--surface-1)',
         borderRadius: 'var(--radius-md)',
-        border: 'var(--border-subtle)',
+        border: '1px solid var(--border-subtle)',
       }}
     >
       {views.map((view) => {

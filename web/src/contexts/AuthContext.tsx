@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 interface AuthUser {
   userId: number;
   username: string;
+  displayName?: string;
   isAdmin: boolean;
 }
 
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser({
           userId: data.userId,
           username: data.username,
+          displayName: data.displayName,
           isAdmin: data.isAdmin,
         });
       })

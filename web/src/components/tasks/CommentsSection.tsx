@@ -189,7 +189,7 @@ export default function CommentsSection({ taskId }: CommentsSectionProps) {
             flex: 1,
             padding: 'var(--space-2) var(--space-3)',
             backgroundColor: 'var(--surface-2)',
-            border: 'var(--border-input)',
+            border: '1px solid var(--border-input)',
             borderRadius: 'var(--radius-md)',
             color: 'var(--text-primary)',
             fontSize: 'var(--text-sm)',

@@ -94,7 +94,7 @@ export default function CreateTaskQuickAdd({
         aria-label="Plan für neue Aufgabe"
         style={{
           padding: 'var(--space-2)',
-          border: 'var(--border-input)',
+          border: '1px solid var(--border-input)',
           borderRadius: 'var(--radius-md)',
           backgroundColor: 'var(--surface-0)',
           color: 'var(--text-primary)',
@@ -121,7 +121,7 @@ export default function CreateTaskQuickAdd({
           flex: '1 1 220px',
           minWidth: 180,
           padding: 'var(--space-2) var(--space-3)',
-          border: 'var(--border-input)',
+          border: '1px solid var(--border-input)',
           borderRadius: 'var(--radius-md)',
           backgroundColor: 'var(--surface-0)',
           color: 'var(--text-primary)',

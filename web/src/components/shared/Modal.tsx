@@ -53,7 +53,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
           backgroundColor: 'var(--surface-2)',
           borderRadius: 'var(--radius-lg)',
           boxShadow: 'var(--shadow-xl)',
-          border: 'var(--border-default)',
+          border: '1px solid var(--border-default)',
           animation: 'scale-in 0.15s ease-out',
         }}
         onClick={(e) => e.stopPropagation()}
@@ -65,7 +65,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: 'var(--space-4) var(--space-5)',
-              borderBottom: 'var(--border-divider)',
+              borderBottom: '1px solid var(--border-divider)',
             }}
           >
             <h2

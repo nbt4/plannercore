@@ -26,7 +26,7 @@ export default function PlanHeader() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
-          borderBottom: 'var(--border-default)',
+          borderBottom: '1px solid var(--border-default)',
           backgroundColor: 'var(--surface-0)',
           padding: '0 var(--space-4)',
         }}
@@ -78,7 +78,7 @@ export default function PlanHeader() {
         display: 'flex',
         alignItems: 'center',
         gap: 'var(--space-3)',
-        borderBottom: 'var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
         backgroundColor: 'var(--surface-0)',
         padding: '0 var(--space-4)',
         flexShrink: 0,

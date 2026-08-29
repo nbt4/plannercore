@@ -63,7 +63,7 @@ export default function LoginPage() {
           width: '100%',
           maxWidth: 400,
           backgroundColor: 'var(--surface-1)',
-          border: 'var(--border-default)',
+          border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-lg)',
           padding: 'var(--space-6)',
           display: 'flex',
@@ -117,7 +117,7 @@ export default function LoginPage() {
             style={{
               padding: 'var(--space-2) var(--space-3)',
               backgroundColor: 'var(--surface-2)',
-              border: 'var(--border-input)',
+              border: '1px solid var(--border-input)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--text-primary)',
               fontSize: 'var(--text-sm)',
@@ -138,7 +138,7 @@ export default function LoginPage() {
             style={{
               padding: 'var(--space-2) var(--space-3)',
               backgroundColor: 'var(--surface-2)',
-              border: 'var(--border-input)',
+              border: '1px solid var(--border-input)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--text-primary)',
               fontSize: 'var(--text-sm)',

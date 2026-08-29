@@ -163,7 +163,7 @@ export default function TimelineView() {
             minWidth: 600,
             backgroundColor: 'var(--surface-0)',
             borderRadius: 'var(--radius-lg)',
-            border: 'var(--border-default)',
+            border: '1px solid var(--border-default)',
             overflow: 'hidden',
           }}
         >
@@ -171,7 +171,7 @@ export default function TimelineView() {
           <div
             style={{
               display: 'flex',
-              borderBottom: 'var(--border-default)',
+              borderBottom: '1px solid var(--border-default)',
             }}
           >
             {/* Task names column */}
@@ -185,7 +185,7 @@ export default function TimelineView() {
                 color: 'var(--text-muted)',
                 textTransform: 'uppercase',
                 letterSpacing: 'var(--tracking-wide)',
-                borderRight: 'var(--border-default)',
+                borderRight: '1px solid var(--border-default)',
               }}
             >
               Aufgaben
@@ -228,7 +228,7 @@ export default function TimelineView() {
               key={task.id}
               style={{
                 display: 'flex',
-                borderBottom: 'var(--border-subtle)',
+                borderBottom: '1px solid var(--border-subtle)',
                 backgroundColor:
                   taskIdx % 2 === 0 ? 'transparent' : 'var(--surface-1)',
                 cursor: 'pointer',
@@ -250,7 +250,7 @@ export default function TimelineView() {
                   width: 240,
                   flexShrink: 0,
                   padding: 'var(--space-2) var(--space-3)',
-                  borderRight: 'var(--border-default)',
+                  borderRight: '1px solid var(--border-default)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 'var(--space-2)',

@@ -36,7 +36,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <div
         style={{
           backgroundColor: 'var(--surface-2)',
-          border: 'var(--border-default)',
+          border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-md)',
           padding: 'var(--space-2) var(--space-3)',
           fontSize: 'var(--text-sm)',
@@ -150,7 +150,7 @@ export default function ChartsView() {
             style={{
               backgroundColor: 'var(--surface-0)',
               borderRadius: 'var(--radius-lg)',
-              border: 'var(--border-default)',
+              border: '1px solid var(--border-default)',
               padding: 'var(--space-4)',
             }}
           >
@@ -198,7 +198,7 @@ export default function ChartsView() {
             style={{
               backgroundColor: 'var(--surface-0)',
               borderRadius: 'var(--radius-lg)',
-              border: 'var(--border-default)',
+              border: '1px solid var(--border-default)',
               padding: 'var(--space-4)',
             }}
           >
@@ -247,7 +247,7 @@ export default function ChartsView() {
             style={{
               backgroundColor: 'var(--surface-0)',
               borderRadius: 'var(--radius-lg)',
-              border: 'var(--border-default)',
+              border: '1px solid var(--border-default)',
               padding: 'var(--space-4)',
             }}
           >

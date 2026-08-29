@@ -2,6 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
+import './cores-theme.css'
 
 document.addEventListener('wheel', (event) => {
   const target = event.target

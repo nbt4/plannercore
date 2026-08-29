@@ -95,7 +95,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.14")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.15")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -165,10 +165,21 @@ func main() {
 	// Me endpoint - returns current user info (for auth check)
 	api.GET("/me", func(c *gin.Context) {
 		user, _ := sessionValidator.GetCurrentUser(c)
+		displayName := user.Username
+		db.Raw(`SELECT COALESCE(
+			NULLIF(p.display_name, ''),
+			NULLIF(TRIM(CONCAT_WS(' ', u.first_name, u.last_name)), ''),
+			u.username
+		) FROM users u LEFT JOIN user_profiles p ON p.user_id = u.userid WHERE u.userid = ?`, user.UserID).
+			Scan(&displayName)
+		if strings.TrimSpace(displayName) == "" {
+			displayName = user.Username
+		}
 		c.JSON(200, gin.H{
-			"userId":   fmt.Sprintf("%d", user.UserID),
-			"username": user.Username,
-			"isAdmin":  user.IsAdmin,
+			"userId":      fmt.Sprintf("%d", user.UserID),
+			"username":    user.Username,
+			"displayName": displayName,
+			"isAdmin":     user.IsAdmin,
 		})
 	})
 

@@ -13,7 +13,7 @@ interface FilterBarProps {
 const selectStyle: React.CSSProperties = {
   padding: 'var(--space-1) var(--space-2)',
   backgroundColor: 'var(--surface-1)',
-  border: 'var(--border-default)',
+  border: '1px solid var(--border-default)',
   borderRadius: 'var(--radius-md)',
   color: 'var(--text-primary)',
   fontSize: 'var(--text-xs)',

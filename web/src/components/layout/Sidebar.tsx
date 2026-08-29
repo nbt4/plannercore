@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X, ChevronLeft, ChevronRight, Gauge } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -59,7 +59,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
         width: compact ? 80 : STYLES.sidebarWidth,
         height: '100vh',
         backgroundColor: 'var(--surface-1)',
-        borderRight: 'var(--border-default)',
+        borderRight: '1px solid var(--border-default)',
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
@@ -67,7 +67,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
       }}
     >
       {/* Logo */}
-      <div className="planner-sidebar-logo" style={{ position: 'relative', minHeight: 80, padding: 'var(--space-3)', borderBottom: 'var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="planner-sidebar-logo" style={{ position: 'relative', minHeight: 80, padding: 'var(--space-3)', borderBottom: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
           src={compact ? branding.assets.markOnDark : branding.assets.horizontalOnDark}
           alt={branding.productName}
@@ -83,6 +83,21 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
 
       {/* Navigation Links */}
       <nav style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+        <NavLink
+          to="/"
+          end
+          onClick={onMobileClose}
+          style={({ isActive }) => ({
+            display: 'flex', alignItems: 'center', gap: compact ? 0 : 'var(--space-2)',
+            justifyContent: compact ? 'center' : 'flex-start', padding: 'var(--space-2) var(--space-3)',
+            borderRadius: 'var(--radius-md)', textDecoration: 'none', fontSize: 'var(--text-sm)',
+            fontWeight: 'var(--weight-medium)', color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+            backgroundColor: isActive ? 'var(--color-accent-red)' : 'transparent', transition: 'all var(--transition-fast)',
+          })}
+        >
+          <Gauge size={18} />
+          {!compact && <span>Dashboard</span>}
+        </NavLink>
         <a
           href={(window as any).__DASHBOARD_URL__ || '/'}
           onClick={onMobileClose}
@@ -209,7 +224,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
       </div>}
 
       {/* New Plan Input / Button */}
-      {!compact && <div style={{ padding: 'var(--space-3)', borderTop: 'var(--border-divider)' }}>
+      {!compact && <div style={{ padding: 'var(--space-3)', borderTop: '1px solid var(--border-divider)' }}>
         {showNewInput ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             <input
@@ -228,7 +243,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
                 width: '100%',
                 padding: 'var(--space-2) var(--space-3)',
                 backgroundColor: 'var(--surface-2)',
-                border: 'var(--border-input)',
+                border: '1px solid var(--border-input)',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--text-primary)',
                 fontSize: 'var(--text-sm)',
@@ -258,7 +273,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
                   padding: 'var(--space-1) var(--space-3)',
                   backgroundColor: 'transparent',
                   color: 'var(--text-secondary)',
-                  border: 'var(--border-input)',
+                  border: '1px solid var(--border-input)',
                   borderRadius: 'var(--radius-md)',
                   fontSize: 'var(--text-sm)',
                   cursor: 'pointer',
@@ -295,8 +310,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
       {compact && <div style={{ flex: 1 }} />}
 
       {user && (
-        <div style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', borderTop: 'var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
-          {!compact && <>Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.username}</strong></>}
+        <div style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', borderTop: '1px solid var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>
+          {!compact && <>Angemeldet als <strong style={{ color: 'var(--text-secondary)' }}>{user.displayName || user.username}</strong></>}
           <button onClick={handleLogout} title={compact ? 'Abmelden' : undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: compact ? 'center' : 'flex-start', gap: 'var(--space-2)', width: '100%', marginTop: compact ? 0 : 'var(--space-2)', padding: 'var(--space-2) 0', border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 'var(--text-xs)' }}>
             <LogOut size={14} /> {!compact && 'Abmelden'}
           </button>

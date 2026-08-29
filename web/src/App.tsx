@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom'
-import { ClipboardList, Kanban, Menu, Sun } from 'lucide-react'
+import { Gauge, Kanban, Menu, Sun } from 'lucide-react'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { PlanProvider, usePlanContext } from './contexts/PlanContext'
 import { WebSocketProvider } from './contexts/WebSocketContext'
@@ -17,6 +17,7 @@ import GoalsView from './components/goals/GoalsView'
 import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
 import LoginPage from './pages/LoginPage'
+import DashboardPage from './pages/DashboardPage'
 
 function PlanLayout() {
   return (
@@ -83,9 +84,9 @@ function PlannerShell({ children, locked = false }: { children: React.ReactNode;
       </main>
 
       <nav className="planner-mobile-tabs" aria-label="Schnellnavigation">
-        <NavLink to="/my/tasks" className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
-          <ClipboardList size={21} />
-          <span>Aufgaben</span>
+        <NavLink to="/" end className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
+          <Gauge size={21} />
+          <span>Start</span>
         </NavLink>
         <NavLink to="/my/day" className={({ isActive }) => `planner-mobile-tab ${isActive ? 'is-active' : ''}`}>
           <Sun size={21} />
@@ -132,10 +133,12 @@ export default function App() {
             <TasksProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<AuthGate><AppLayout><DashboardPage /></AppLayout></AuthGate>} />
+                <Route path="/dashboard" element={<AuthGate><AppLayout><DashboardPage /></AppLayout></AuthGate>} />
                 <Route path="/plan/:planId/*" element={<AuthGate><PlanLayout /></AuthGate>} />
                 <Route path="/my/tasks" element={<AuthGate><AppLayout><MyTasksPage /></AppLayout></AuthGate>} />
                 <Route path="/my/day" element={<AuthGate><AppLayout><MyDayPage /></AppLayout></AuthGate>} />
-                <Route path="*" element={<Navigate to="/plan/new" />} />
+                <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </TasksProvider>
           </WebSocketProvider>

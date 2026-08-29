@@ -114,7 +114,7 @@ export default function MyTasksPage() {
                   gap: 'var(--space-3)',
                   backgroundColor: 'var(--surface-0)',
                   borderRadius: 'var(--radius-lg)',
-                  border: 'var(--border-default)',
+                  border: '1px solid var(--border-default)',
                   padding: 'var(--space-3) var(--space-4)',
                   cursor: task.planId ? 'pointer' : 'default',
                   transition: 'all var(--transition-fast)',

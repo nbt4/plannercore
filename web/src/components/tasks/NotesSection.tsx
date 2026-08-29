@@ -66,7 +66,7 @@ export default function NotesSection({ taskId, initialValue = '' }: NotesSection
           padding: 'var(--space-2)',
           borderRadius: 'var(--radius-md)',
           backgroundColor: 'var(--surface-2)',
-          border: 'var(--border-input)',
+          border: '1px solid var(--border-input)',
           color: 'var(--text-primary)',
           fontSize: 'var(--text-sm)',
           lineHeight: 'var(--leading-relaxed)',

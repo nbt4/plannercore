@@ -344,7 +344,7 @@ export default function GoalsView() {
         style={{
           backgroundColor: 'var(--surface-0)',
           borderRadius: 'var(--radius-lg)',
-          border: 'var(--border-default)',
+          border: '1px solid var(--border-default)',
           overflow: 'hidden',
         }}
       >
@@ -355,7 +355,7 @@ export default function GoalsView() {
             alignItems: 'center',
             justifyContent: 'space-between',
             padding: 'var(--space-3) var(--space-4)',
-            borderBottom: 'var(--border-default)',
+            borderBottom: '1px solid var(--border-default)',
           }}
         >
           <h3
@@ -395,7 +395,7 @@ export default function GoalsView() {
           <div
             style={{
               padding: 'var(--space-3) var(--space-4)',
-              borderBottom: 'var(--border-default)',
+              borderBottom: '1px solid var(--border-default)',
               display: 'flex',
               gap: 'var(--space-2)',
             }}
@@ -416,7 +416,7 @@ export default function GoalsView() {
                 flex: 1,
                 padding: 'var(--space-2) var(--space-3)',
                 backgroundColor: 'var(--surface-2)',
-                border: 'var(--border-input)',
+                border: '1px solid var(--border-input)',
                 borderRadius: 'var(--radius-md)',
                 color: 'var(--text-primary)',
                 fontSize: 'var(--text-sm)',
@@ -446,7 +446,7 @@ export default function GoalsView() {
                 padding: 'var(--space-2) var(--space-3)',
                 backgroundColor: 'transparent',
                 color: 'var(--text-secondary)',
-                border: 'var(--border-input)',
+                border: '1px solid var(--border-input)',
                 borderRadius: 'var(--radius-md)',
                 fontSize: 'var(--text-sm)',
                 cursor: 'pointer',

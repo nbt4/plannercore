@@ -160,7 +160,7 @@ export default function GridView() {
           color: active ? 'var(--text-primary)' : 'var(--text-muted)',
           textTransform: 'uppercase',
           letterSpacing: 'var(--tracking-wide)',
-          borderBottom: 'var(--border-default)',
+          borderBottom: '1px solid var(--border-default)',
           cursor: 'pointer',
           whiteSpace: 'nowrap',
           userSelect: 'none',
@@ -188,7 +188,7 @@ export default function GridView() {
         color: 'var(--text-muted)',
         textTransform: 'uppercase',
         letterSpacing: 'var(--tracking-wide)',
-        borderBottom: 'var(--border-default)',
+        borderBottom: '1px solid var(--border-default)',
         whiteSpace: 'nowrap',
         position: 'sticky',
         top: 0,
@@ -217,7 +217,7 @@ export default function GridView() {
           idx % 2 === 0 ? 'transparent' : 'var(--surface-1)';
       }}
     >
-      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)', width: 36 }}>
+      <td style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)', width: 36 }}>
         <TaskCompletionCheckbox
           completed={task.status === 'completed'}
           taskTitle={task.title}
@@ -232,7 +232,7 @@ export default function GridView() {
           fontSize: 'var(--text-sm)',
           color: 'var(--text-primary)',
           fontWeight: 'var(--weight-medium)',
-          borderBottom: 'var(--border-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
           maxWidth: 250,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -241,7 +241,7 @@ export default function GridView() {
       >
         {task.title}
       </td>
-      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+      <td style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)' }}>
         {task.status && (
           <span
             style={{
@@ -271,15 +271,15 @@ export default function GridView() {
           padding: 'var(--space-3)',
           fontSize: 'var(--text-sm)',
           color: 'var(--text-secondary)',
-          borderBottom: 'var(--border-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
         }}
       >
         {bucketMap[task.bucketId] || '-'}
       </td>
-      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+      <td style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)' }}>
         <PriorityBadge priority={task.priority} />
       </td>
-      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+      <td style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           {(task.assignees || []).slice(0, 3).map((a: any, i: number, arr: any[]) => (
             <div
@@ -311,7 +311,7 @@ export default function GridView() {
           fontSize: 'var(--text-sm)',
           color: task.isLate ? 'var(--color-error)' : 'var(--text-secondary)',
           fontWeight: task.isLate ? 'var(--weight-medium)' : 'var(--weight-normal)',
-          borderBottom: 'var(--border-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
           whiteSpace: 'nowrap',
         }}
       >
@@ -320,7 +320,7 @@ export default function GridView() {
       <td
         style={{
           padding: 'var(--space-3)',
-          borderBottom: 'var(--border-subtle)',
+          borderBottom: '1px solid var(--border-subtle)',
           width: 150,
         }}
       >
@@ -333,7 +333,7 @@ export default function GridView() {
           </span>
         </div>
       </td>
-      <td style={{ padding: 'var(--space-3)', borderBottom: 'var(--border-subtle)' }}>
+      <td style={{ padding: 'var(--space-3)', borderBottom: '1px solid var(--border-subtle)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)' }}>
           {(task.labels || []).map((label: any) => (
             <LabelBadge key={label.id} name={label.name} color={label.color} />
@@ -391,7 +391,7 @@ export default function GridView() {
             style={{
               padding: 'var(--space-1) var(--space-2)',
               backgroundColor: 'var(--surface-1)',
-              border: 'var(--border-default)',
+              border: '1px solid var(--border-default)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--text-primary)',
               fontSize: 'var(--text-xs)',
@@ -412,7 +412,7 @@ export default function GridView() {
           style={{
             backgroundColor: 'var(--surface-0)',
             borderRadius: 'var(--radius-lg)',
-            border: 'var(--border-default)',
+            border: '1px solid var(--border-default)',
             overflow: 'auto',
           }}
         >
@@ -458,7 +458,7 @@ export default function GridView() {
                             fontWeight: 'var(--weight-semibold)',
                             color: 'var(--text-secondary)',
                             backgroundColor: 'var(--surface-1)',
-                            borderBottom: 'var(--border-default)',
+                            borderBottom: '1px solid var(--border-default)',
                           }}
                         >
                           {group.label} ({group.tasks.length})

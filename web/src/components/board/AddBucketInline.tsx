@@ -56,7 +56,7 @@ export default function AddBucketInline({}: AddBucketInlineProps) {
           flexShrink: 0,
           padding: 'var(--space-3)',
           backgroundColor: 'transparent',
-          border: 'var(--border-default)',
+          border: '1px solid var(--border-default)',
           borderRadius: 'var(--radius-md)',
           color: 'var(--text-muted)',
           fontSize: 'var(--text-sm)',
@@ -87,7 +87,7 @@ export default function AddBucketInline({}: AddBucketInlineProps) {
         padding: 'var(--space-3)',
         backgroundColor: 'var(--surface-1)',
         borderRadius: 'var(--radius-md)',
-        border: 'var(--border-default)',
+        border: '1px solid var(--border-default)',
       }}
     >
       <input
@@ -108,7 +108,7 @@ export default function AddBucketInline({}: AddBucketInlineProps) {
           width: '100%',
           padding: 'var(--space-2) var(--space-3)',
           backgroundColor: 'var(--surface-0)',
-          border: 'var(--border-input)',
+          border: '1px solid var(--border-input)',
           borderRadius: 'var(--radius-md)',
           color: 'var(--text-primary)',
           fontSize: 'var(--text-sm)',

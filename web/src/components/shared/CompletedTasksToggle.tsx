@@ -24,7 +24,7 @@ export default function CompletedTasksToggle({
         gap: 'var(--space-1)',
         padding: 'var(--space-1) var(--space-2)',
         backgroundColor: showCompleted ? 'var(--surface-2)' : 'transparent',
-        border: 'var(--border-default)',
+        border: '1px solid var(--border-default)',
         borderRadius: 'var(--radius-md)',
         color: 'var(--text-secondary)',
         fontSize: 'var(--text-xs)',

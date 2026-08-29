@@ -37,7 +37,7 @@ export default function TaskCard({ task, onClick, onToggleCompleted }: TaskCardP
     backgroundColor: STYLES.cardBg,
     borderRadius: STYLES.cardRadius,
     boxShadow: STYLES.cardShadow,
-    border: 'var(--border-default)',
+    border: '1px solid var(--border-default)',
     cursor: 'pointer',
     padding: 'var(--space-3)',
   };

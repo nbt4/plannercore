@@ -80,7 +80,7 @@ export default function ScheduleView() {
             flex: 1,
             backgroundColor: 'var(--color-surface)',
             borderRadius: 'var(--radius-lg)',
-            border: 'var(--border-default)',
+            border: '1px solid var(--border-default)',
             overflow: 'hidden',
           }}
         >

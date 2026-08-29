@@ -1,5 +1,11 @@
 # Plannercore
 
+## Einheitliches Cores Designsystem
+
+PlannerCore folgt dem verbindlichen Designvertrag aus [`nbt4/cores`](https://github.com/nbt4/cores/blob/main/docs/DESIGN_SYSTEM.md). Die generierten Dateien `web/src/cores-theme.css` und `web/src/lib/cores-design.ts` werden ausschließlich über das Umbrella-Skript synchronisiert und nie direkt editiert.
+
+Die Anwendung besitzt ein fachliches Dashboard mit derselben Begrüßung, KPI-Hierarchie und Shell wie die übrigen Cores. Task-, Label- und Diagrammfarben dürfen Daten semantisch unterscheiden; Typografie, Flächen, Formulare, Tabellen, Dropdowns, Scrollbars, Karten und die 256/80-px-Sidebar bleiben suite-weit identisch.
+
 **Microsoft Planner-Klon als vierter Core-Service — Kanban-Boards, Gantt-Diagramme, Sprint-Planung, Team-Auslastung und mehr. Vollständig integriert ins Cores-Ökosystem.**
 
 Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchoptimierte App-Shell, Safe-Area-Unterstützung und ein eigenes Homescreen-Icon – sowohl auf der eigenen Domain als auch eingebettet unter `/planner/`.

@@ -108,7 +108,7 @@ export default function PlanMembersModal({ planId, open, onClose }: PlanMembersM
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Name oder E-Mail suchen..."
-            style={{ width: '100%', padding: 'var(--space-2) var(--space-3)', backgroundColor: 'var(--surface-2)', border: 'var(--border-input)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none' }}
+            style={{ width: '100%', padding: 'var(--space-2) var(--space-3)', backgroundColor: 'var(--surface-2)', border: '1px solid var(--border-input)', borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none' }}
           />
           {availableResults.length > 0 && (
             <div style={{ marginTop: 'var(--space-2)', display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
