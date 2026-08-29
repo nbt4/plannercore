@@ -8,12 +8,12 @@ Die Anwendung besitzt ein fachliches Dashboard mit derselben Begrüßung, KPI-Hi
 
 **Microsoft Planner-Klon als vierter Core-Service — Kanban-Boards, Gantt-Diagramme, Sprint-Planung, Team-Auslastung und mehr. Vollständig integriert ins Cores-Ökosystem.**
 
-Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchoptimierte App-Shell, Safe-Area-Unterstützung und ein eigenes Homescreen-Icon – sowohl auf der eigenen Domain als auch eingebettet unter `/planner/`.
+Als installierbare PWA bietet PlannerCore auf Smartphone und Tablet eine touchoptimierte App-Shell, Safe-Area-Unterstützung und ein eigenes Homescreen-Icon – sowohl auf der eigenen Domain als auch im globalen Suite-Pfadmodus unter `/plannercore/`.
 
 Produktlogo, Favicon und PWA-Icons werden zentral verwaltet und sowohl auf der
 eigenen Domain als auch über den Dashboard-Pfad semantisch ausgeliefert. Die
-öffentliche Konfiguration ist unter `/api/v1/branding` beziehungsweise im
-eingebetteten Betrieb unter `/api/v1/planner/branding` verfügbar.
+öffentliche Konfiguration bleibt in beiden Betriebsarten unter `/api/v1/branding`
+erreichbar; der Pfadprefix wird client- und gatewayseitig automatisch ergänzt.
 Die Desktop-Sidebar lässt sich ein- und ausklappen und verwendet dieselbe
 176 × 48-px-Logo- bzw. 40 × 40-px-Symbolfläche wie alle Cores-Services; App-Header
 bleiben logofrei und der Browser-Tab verwendet ausschließlich das Produkt-Favicon.
@@ -110,7 +110,7 @@ npm run dev
 Frontend Dev-Server: `http://localhost:3003` (proxied API zu Backend `:8080`)
 
 Die produktive SPA unterstützt beide Cores-Betriebsarten: eine eigene Domain
-unter `/` sowie den Dashboard-Reverse-Proxy unter `/planner`. Der Router erkennt
+unter `/` sowie den Dashboard-Reverse-Proxy unter `/plannercore`. Der Router erkennt
 den aktiven Pfad automatisch; statische Assets und Logos werden unter beiden
 Pfadvarianten ausgeliefert.
 

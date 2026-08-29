@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { appPath } from '../lib/app-paths';
 
 interface AuthUser {
   userId: number;
@@ -24,13 +25,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refetch = useCallback(() => setFetchId((n) => n + 1), []);
 
   const logout = useCallback(async () => {
-    await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
+    await fetch(appPath('/api/v1/auth/logout'), { method: 'POST', credentials: 'include' });
     setUser(null);
   }, []);
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/v1/planner/me', { credentials: 'include' })
+    fetch(appPath('/api/v1/planner/me'), { credentials: 'include' })
       .then((r) => {
         if (r.ok) return r.json();
         throw new Error('Not authenticated');
@@ -46,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .catch(() => {
         setUser(null);
         // Redirect to login unless already there
-        if (window.location.pathname !== '/login') {
-          window.location.href = `/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+        if (!window.location.pathname.endsWith('/login')) {
+          window.location.href = appPath(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
         }
       })
       .finally(() => setLoading(false));

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { usePlanContext } from './PlanContext';
+import { appPath } from '../lib/app-paths';
 
 interface WebSocketContextValue {
   lastEvent: unknown | null;
@@ -26,7 +27,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     function connect() {
       if (closed) return;
       ws = new WebSocket(
-        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/api/v1/planner/ws?planId=${activePlanId}`,
+        `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}${appPath(`/api/v1/planner/ws?planId=${activePlanId}`)}`,
       );
 
       ws.onopen = () => setConnected(true);

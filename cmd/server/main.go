@@ -95,7 +95,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.15")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.16")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -274,8 +274,9 @@ func main() {
 	integrationHandler := integration.NewHandler(db, sessionValidator)
 	integrationHandler.RegisterRoutes(planRoutes)
 
-	// Serve static assets (both /assets and /planner/assets for cached clients)
+	// Serve static assets on the direct domain and canonical suite path.
 	r.Static("/assets", "./web/dist/assets")
+	r.Static("/plannercore/assets", "./web/dist/assets")
 	r.Static("/planner/assets", "./web/dist/assets")
 	serveLogo := func(c *gin.Context) {
 		filename := filepath.Base(c.Param("filepath"))
@@ -294,18 +295,27 @@ func main() {
 		c.Status(http.StatusNotFound)
 	}
 	r.GET("/logos/*filepath", serveLogo)
+	r.GET("/plannercore/logos/*filepath", serveLogo)
 	r.GET("/planner/logos/*filepath", serveLogo)
 	r.Static("/app-icons", "./web/dist/app-icons")
+	r.Static("/plannercore/app-icons", "./web/dist/app-icons")
 	r.Static("/planner/app-icons", "./web/dist/app-icons")
-	r.GET("/manifest.webmanifest", func(c *gin.Context) {
+	manifestHandler := func(c *gin.Context) {
+		mountPath := ""
+		if strings.TrimSuffix(c.GetHeader("X-Forwarded-Prefix"), "/") == "/plannercore" {
+			mountPath = "/plannercore"
+		}
+		prefix := mountPath + "/"
 		c.Header("Content-Type", "application/manifest+json")
 		c.Header("Cache-Control", "no-cache")
 		c.JSON(http.StatusOK, commonbranding.Manifest(brandingService.GetConfig(), commonbranding.ManifestOptions{
-			Name: "PlannerCore", StartURL: "/", Scope: "/",
-			FallbackIcon192: "/app-icons/icon-192.png", FallbackIcon512: "/app-icons/icon-512.png",
-			FallbackMaskable: "/app-icons/icon-maskable-512.png",
+			Name: "PlannerCore", StartURL: prefix, Scope: prefix,
+			FallbackIcon192: mountPath + "/app-icons/icon-192.png", FallbackIcon512: mountPath + "/app-icons/icon-512.png",
+			FallbackMaskable: mountPath + "/app-icons/icon-maskable-512.png",
 		}))
-	})
+	}
+	r.GET("/manifest.webmanifest", manifestHandler)
+	r.GET("/plannercore/manifest.webmanifest", manifestHandler)
 	r.GET("/planner/manifest.webmanifest", func(c *gin.Context) {
 		c.Header("Content-Type", "application/manifest+json")
 		c.Header("Cache-Control", "no-cache")
@@ -319,12 +329,16 @@ func main() {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})
+	r.GET("/plannercore/sw.js", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+		c.File("./web/dist/sw.js")
+	})
 	r.GET("/planner/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})
 
-	// SPA fallback for /planner/* (cached clients with old base path)
+	// SPA fallback for direct-domain, canonical-path, and cached legacy routes.
 	// Inject DASHBOARD_URL into the served HTML so the React app can read it
 	indexHTML, err := os.ReadFile("web/dist/index.html")
 	if err != nil {

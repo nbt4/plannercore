@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
 import './cores-theme.css'
+import { appBasePath, appPath } from './lib/app-paths'
 
 document.addEventListener('wheel', (event) => {
   const target = event.target
@@ -11,9 +12,7 @@ document.addEventListener('wheel', (event) => {
   }
 }, { capture: true, passive: true })
 
-const appBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
-  ? '/planner/'
-  : '/'
+const appBase = `${appBasePath || ''}/`
 
 document.querySelector<HTMLLinkElement>('#app-manifest')?.setAttribute('href', `${appBase}manifest.webmanifest`)
 document.querySelector<HTMLLinkElement>('#app-touch-icon')?.setAttribute('href', `${appBase}app-icons/icon-180.png`)
@@ -33,7 +32,7 @@ standaloneQuery.addEventListener?.('change', syncDisplayMode)
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    void navigator.serviceWorker.register(`${appBase}sw.js?v=2`, {
+    void navigator.serviceWorker.register(appPath('/sw.js?v=2'), {
       scope: appBase,
       updateViaCache: 'none',
     }).catch((error: unknown) => {

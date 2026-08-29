@@ -7,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/plannerApi';
 import { STYLES } from '../../lib/constants';
 import { useBranding } from '../../hooks/useBranding';
+import { appBasePath } from '../../lib/app-paths';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -99,7 +100,7 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
           {!compact && <span>Dashboard</span>}
         </NavLink>
         <a
-          href={(window as any).__DASHBOARD_URL__ || '/'}
+          href={appBasePath ? '/' : ((window as any).__DASHBOARD_URL__ || '/')}
           onClick={onMobileClose}
           style={{
             display: 'flex',

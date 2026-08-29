@@ -18,6 +18,7 @@ import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import { appBasePath } from './lib/app-paths'
 
 function PlanLayout() {
   return (
@@ -119,14 +120,8 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  // PlannerCore is available both on its own domain at `/` and through the
-  // dashboard proxy at `/planner`. Only apply the proxy basename when the
-  // current URL actually uses it; otherwise React Router renders a blank app.
-  const basename = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
-    ? '/planner'
-    : undefined
   return (
-    <BrowserRouter basename={basename}>
+    <BrowserRouter basename={appBasePath || undefined}>
       <AuthProvider>
         <PlanProvider>
           <WebSocketProvider>

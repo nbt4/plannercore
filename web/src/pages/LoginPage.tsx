@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useBranding } from '../hooks/useBranding'
+import { appPath } from '../lib/app-paths'
 
 export default function LoginPage() {
   const [username, setUsername] = useState('')
@@ -16,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/v1/auth/login', {
+      const res = await fetch(appPath('/api/v1/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),

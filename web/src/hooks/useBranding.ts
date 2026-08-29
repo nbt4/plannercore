@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appAssetPath, appPath } from '../lib/app-paths';
 
 export interface BrandingAssets {
   markOnDark: string; markOnLight: string;
@@ -12,10 +13,8 @@ export interface BrandingConfig {
   assets: BrandingAssets; companyAssets: Partial<BrandingAssets>;
 }
 
-const mounted = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/');
-const base = mounted ? '/planner' : '';
-const logo = (name: string) => `${base}/logos/${name}`;
-const icon = (name: string) => `${base}/app-icons/${name}`;
+const logo = (name: string) => appPath(`/logos/${name}`);
+const icon = (name: string) => appPath(`/app-icons/${name}`);
 
 const defaults: BrandingConfig = {
   productName: 'PlannerCore', companyName: 'Cores', brandName: '',
@@ -46,14 +45,15 @@ function applyDocumentBranding(value: BrandingConfig) {
 
 async function refresh() {
   try {
-    const response = await fetch(mounted ? '/api/v1/planner/branding' : '/api/v1/branding', { cache: 'no-store' });
+    const response = await fetch(appPath('/api/v1/branding'), { cache: 'no-store' });
     if (!response.ok) return;
     const raw = await response.json();
     cached = {
       productName: raw.productName || defaults.productName,
       companyName: raw.companyName || defaults.companyName,
       brandName: raw.brandName || '',
-      assets: { ...defaults.assets, ...(raw.assets || {}) },
+      assets: Object.fromEntries(Object.entries({ ...defaults.assets, ...(raw.assets || {}) })
+        .map(([key, value]) => [key, appAssetPath(String(value))])) as unknown as BrandingAssets,
       companyAssets: raw.companyAssets || {},
     };
     applyDocumentBranding(cached);
