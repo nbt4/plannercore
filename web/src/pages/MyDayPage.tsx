@@ -283,6 +283,7 @@ export default function MyDayPage() {
             {group.planName}
           </h3>
           <div
+            className="suite-search-field"
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -390,6 +391,7 @@ export default function MyDayPage() {
           }}
         >
           <div
+            className="suite-search-field"
             style={{
               display: 'flex',
               alignItems: 'center',
