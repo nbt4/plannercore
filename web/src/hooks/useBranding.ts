@@ -36,7 +36,7 @@ function applyDocumentBranding(value: BrandingConfig) {
     if (!href) return;
     let link = document.querySelector<HTMLLinkElement>(selector);
     if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
-    link.href = href;
+    link.href = appAssetPath(href);
     if (rel === 'icon') link.type = href.toLowerCase().includes('.png') ? 'image/png' : 'image/svg+xml';
   };
   setLink("link[rel~='icon']", 'icon', value.assets.favicon);

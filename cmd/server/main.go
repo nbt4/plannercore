@@ -95,7 +95,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.18")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.19")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -155,7 +155,8 @@ func main() {
 
 	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("cores_token", "", -1, "/", "", false, true)
+		cookieDomain := os.Getenv("COOKIE_DOMAIN")
+		c.SetCookie("cores_token", "", -1, "/", cookieDomain, cookieDomain != "", true)
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
@@ -329,11 +330,11 @@ func main() {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})
-	r.GET("/plannercore/sw.js", func(c *gin.Context) {
+	r.GET("/planner/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})
-	r.GET("/planner/sw.js", func(c *gin.Context) {
+	r.GET("/plannercore/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})

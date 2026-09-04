@@ -16,7 +16,7 @@ import PeopleView from './components/people/PeopleView'
 import GoalsView from './components/goals/GoalsView'
 import MyTasksPage from './pages/MyTasksPage'
 import MyDayPage from './pages/MyDayPage'
-import LoginPage from './pages/LoginPage'
+import CentralLoginRedirect from './components/CentralLoginRedirect'
 import DashboardPage from './pages/DashboardPage'
 import { appBasePath } from './lib/app-paths'
 
@@ -115,7 +115,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-  if (!user) return <Navigate to="/login" />
+  if (!user) return <CentralLoginRedirect />
   return <>{children}</>
 }
 
@@ -127,7 +127,7 @@ export default function App() {
           <WebSocketProvider>
             <TasksProvider>
               <Routes>
-                <Route path="/login" element={<LoginPage />} />
+                <Route path="/login" element={<CentralLoginRedirect />} />
                 <Route path="/" element={<AuthGate><AppLayout><DashboardPage /></AppLayout></AuthGate>} />
                 <Route path="/dashboard" element={<AuthGate><AppLayout><DashboardPage /></AppLayout></AuthGate>} />
                 <Route path="/plan/:planId/*" element={<AuthGate><PlanLayout /></AuthGate>} />

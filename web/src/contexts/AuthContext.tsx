@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { appPath } from '../lib/app-paths';
+import { appPath, centralLoginURL } from '../lib/suite-auth';
 
 interface AuthUser {
   userId: number;
@@ -46,10 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         setUser(null);
-        // Redirect to login unless already there
-        if (!window.location.pathname.endsWith('/login')) {
-          window.location.href = appPath(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-        }
+        window.location.replace(centralLoginURL());
       })
       .finally(() => setLoading(false));
   }, [fetchId]);
