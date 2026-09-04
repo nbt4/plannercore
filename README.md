@@ -222,6 +222,8 @@ Pfadvarianten ausgeliefert.
 | `DB_USER`           | Datenbank-Benutzer                                 | –                      |
 | `DB_PASS`           | Datenbank-Passwort                                 | –                      |
 | `CORES_JWT_SECRET`  | JWT-Secret (Cores-weit identisch)                  | –                      |
+| `DASHBOARD_URL`     | Öffentliche URL des zentralen Cores-Dashboards     | `/`                    |
+| `CORS_ALLOWED_ORIGINS` | Zusätzliche erlaubte Origins (kommagetrennt)    | –                      |
 
 ---
 

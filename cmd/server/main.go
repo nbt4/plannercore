@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -81,9 +82,12 @@ func main() {
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1", "10.0.0.0/8", "172.16.0.0/12"})
 
-	// FIXED: Added proper CORS middleware
+	// Allow the canonical Cores shell to load PlannerCore's mounted module
+	// assets. Browsers send an Origin header for module scripts even when the
+	// request is same-origin, so omitting the dashboard origin produces a 403
+	// before the login redirect can run.
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3003", "http://localhost:3000", "http://localhost:8080"},
+		AllowOrigins:     corsAllowedOrigins(dashboardURL, os.Getenv("CORS_ALLOWED_ORIGINS")),
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
@@ -95,7 +99,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.19")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.20")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -398,4 +402,31 @@ func envOrDefault(key, defaultVal string) string {
 		return val
 	}
 	return defaultVal
+}
+
+func corsAllowedOrigins(dashboardURL, additional string) []string {
+	origins := []string{"http://localhost:3003", "http://localhost:3000", "http://localhost:8080"}
+	seen := make(map[string]struct{}, len(origins))
+	for _, origin := range origins {
+		seen[origin] = struct{}{}
+	}
+
+	add := func(raw string) {
+		parsed, err := url.Parse(strings.TrimSpace(raw))
+		if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
+			return
+		}
+		origin := parsed.Scheme + "://" + parsed.Host
+		if _, exists := seen[origin]; exists {
+			return
+		}
+		seen[origin] = struct{}{}
+		origins = append(origins, origin)
+	}
+
+	add(dashboardURL)
+	for _, origin := range strings.Split(additional, ",") {
+		add(origin)
+	}
+	return origins
 }
