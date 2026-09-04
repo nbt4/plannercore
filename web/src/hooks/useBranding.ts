@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { appAssetPath, appBasePath, appPath } from '../lib/suite-auth';
 
 export interface BrandingAssets {
   markOnDark: string; markOnLight: string;
@@ -12,8 +13,7 @@ export interface BrandingConfig {
   assets: BrandingAssets; companyAssets: Partial<BrandingAssets>;
 }
 
-const mounted = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/');
-const base = mounted ? '/planner' : '';
+const base = appBasePath;
 const logo = (name: string) => `${base}/logos/${name}`;
 const icon = (name: string) => `${base}/app-icons/${name}`;
 
@@ -37,7 +37,7 @@ function applyDocumentBranding(value: BrandingConfig) {
     if (!href) return;
     let link = document.querySelector<HTMLLinkElement>(selector);
     if (!link) { link = document.createElement('link'); link.rel = rel; document.head.appendChild(link); }
-    link.href = href;
+    link.href = appAssetPath(href);
     if (rel === 'icon') link.type = href.toLowerCase().includes('.png') ? 'image/png' : 'image/svg+xml';
   };
   setLink("link[rel~='icon']", 'icon', value.assets.favicon);
@@ -46,14 +46,16 @@ function applyDocumentBranding(value: BrandingConfig) {
 
 async function refresh() {
   try {
-    const response = await fetch(mounted ? '/api/v1/planner/branding' : '/api/v1/branding', { cache: 'no-store' });
+    const response = await fetch(appPath('/api/v1/branding'), { cache: 'no-store' });
     if (!response.ok) return;
     const raw = await response.json();
     cached = {
       productName: raw.productName || defaults.productName,
       companyName: raw.companyName || defaults.companyName,
       brandName: raw.brandName || '',
-      assets: { ...defaults.assets, ...(raw.assets || {}) },
+      assets: Object.fromEntries(
+        Object.entries({ ...defaults.assets, ...(raw.assets || {}) }).map(([key, value]) => [key, appAssetPath(String(value))]),
+      ) as unknown as BrandingAssets,
       companyAssets: raw.companyAssets || {},
     };
     applyDocumentBranding(cached);

@@ -1,3 +1,5 @@
+import { appPath } from '../lib/suite-auth';
+
 // FIXED: All API routes aligned with backend plan-scoped conventions.
 // Checklists use plan-scoped paths, labels use plan-scoped paths,
 // sprints/goals use plan-scoped update/delete, analytics use correct endpoints.
@@ -10,7 +12,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-const BASE = '/api/v1/planner';
+const BASE = appPath('/api/v1/planner');
 
 export const api = {
   plans: {

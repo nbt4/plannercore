@@ -95,7 +95,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.15")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.19")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -155,7 +155,8 @@ func main() {
 
 	r.POST("/api/v1/auth/logout", func(c *gin.Context) {
 		c.SetSameSite(http.SameSiteLaxMode)
-		c.SetCookie("cores_token", "", -1, "/", "", false, true)
+		cookieDomain := os.Getenv("COOKIE_DOMAIN")
+		c.SetCookie("cores_token", "", -1, "/", cookieDomain, cookieDomain != "", true)
 		c.JSON(http.StatusOK, gin.H{"success": true})
 	})
 
@@ -277,6 +278,7 @@ func main() {
 	// Serve static assets (both /assets and /planner/assets for cached clients)
 	r.Static("/assets", "./web/dist/assets")
 	r.Static("/planner/assets", "./web/dist/assets")
+	r.Static("/plannercore/assets", "./web/dist/assets")
 	serveLogo := func(c *gin.Context) {
 		filename := filepath.Base(c.Param("filepath"))
 		if filename == "." || filename == "" {
@@ -295,8 +297,10 @@ func main() {
 	}
 	r.GET("/logos/*filepath", serveLogo)
 	r.GET("/planner/logos/*filepath", serveLogo)
+	r.GET("/plannercore/logos/*filepath", serveLogo)
 	r.Static("/app-icons", "./web/dist/app-icons")
 	r.Static("/planner/app-icons", "./web/dist/app-icons")
+	r.Static("/plannercore/app-icons", "./web/dist/app-icons")
 	r.GET("/manifest.webmanifest", func(c *gin.Context) {
 		c.Header("Content-Type", "application/manifest+json")
 		c.Header("Cache-Control", "no-cache")
@@ -315,11 +319,24 @@ func main() {
 			FallbackMaskable: "/planner/app-icons/icon-maskable-512.png",
 		}))
 	})
+	r.GET("/plannercore/manifest.webmanifest", func(c *gin.Context) {
+		c.Header("Content-Type", "application/manifest+json")
+		c.Header("Cache-Control", "no-cache")
+		c.JSON(http.StatusOK, commonbranding.Manifest(brandingService.GetConfig(), commonbranding.ManifestOptions{
+			Name: "PlannerCore", StartURL: "/plannercore/", Scope: "/plannercore/",
+			FallbackIcon192: "/plannercore/app-icons/icon-192.png", FallbackIcon512: "/plannercore/app-icons/icon-512.png",
+			FallbackMaskable: "/plannercore/app-icons/icon-maskable-512.png",
+		}))
+	})
 	r.GET("/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})
 	r.GET("/planner/sw.js", func(c *gin.Context) {
+		c.Header("Cache-Control", "no-cache")
+		c.File("./web/dist/sw.js")
+	})
+	r.GET("/plannercore/sw.js", func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
 		c.File("./web/dist/sw.js")
 	})

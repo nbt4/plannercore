@@ -11,7 +11,9 @@ document.addEventListener('wheel', (event) => {
   }
 }, { capture: true, passive: true })
 
-const appBase = window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
+const appBase = window.location.pathname === '/plannercore' || window.location.pathname.startsWith('/plannercore/')
+  ? '/plannercore/'
+  : window.location.pathname === '/planner' || window.location.pathname.startsWith('/planner/')
   ? '/planner/'
   : '/'
 

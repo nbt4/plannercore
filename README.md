@@ -252,7 +252,7 @@ plannercore/
 
 ## Login
 
-Plannercore teilt die User-Datenbank mit dem Cores-Dashboard, RentalCore und WarehouseCore. Lokale und aus Microsoft Entra synchronisierte Benutzer stehen gleichermaßen als Bearbeiter zur Verfügung. Der Picker und alle Task-Antworten verwenden den zentralen Profil-Anzeigenamen statt Benutzername oder numerischer ID. Der Login erfolgt über den bestehenden Cores-JWT-Cookie.
+Plannercore teilt die User-Datenbank mit dem Cores-Dashboard, RentalCore und WarehouseCore. Lokale und aus Microsoft Entra synchronisierte Benutzer stehen gleichermaßen als Bearbeiter zur Verfügung. Der Picker und alle Task-Antworten verwenden den zentralen Profil-Anzeigenamen statt Benutzername oder numerischer ID. Bei fehlender Sitzung öffnet Plannercore ausschließlich den zentralen Cores-Login und kehrt nach lokaler oder Microsoft-Anmeldung zur vorherigen Planner-Ansicht zurück. Die Sitzung wird über den gemeinsamen Cores-JWT-Cookie übernommen.
 
 Default-Credentials: `admin` / `admin` (Passwortänderung beim ersten Login erzwungen)
 
