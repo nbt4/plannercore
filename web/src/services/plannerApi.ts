@@ -1,5 +1,3 @@
-import { appPath } from '../lib/suite-auth';
-
 // FIXED: All API routes aligned with backend plan-scoped conventions.
 // Checklists use plan-scoped paths, labels use plan-scoped paths,
 // sprints/goals use plan-scoped update/delete, analytics use correct endpoints.

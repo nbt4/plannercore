@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Plus, Star, ClipboardList, Sun, LayoutDashboard, LogOut, X, ChevronLeft, ChevronRight, Gauge } from 'lucide-react';
+import { Plus, Star, ClipboardList, Sun, LogOut, X, ChevronLeft, ChevronRight, Gauge } from 'lucide-react';
 import { usePlans } from '../../hooks/usePlans';
 import { usePlanContext } from '../../contexts/PlanContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../services/plannerApi';
 import { STYLES } from '../../lib/constants';
 import { useBranding } from '../../hooks/useBranding';
-import { appBasePath } from '../../lib/app-paths';
+import { coresDashboardURL } from '../../lib/suite-auth';
+import { SuiteCoreNavigation } from './SuiteCoreNavigation';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -99,29 +100,6 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
           <Gauge size={18} />
           {!compact && <span>Dashboard</span>}
         </NavLink>
-        <a
-          href={appBasePath ? '/' : ((window as any).__DASHBOARD_URL__ || '/')}
-          onClick={onMobileClose}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: compact ? 0 : 'var(--space-2)',
-            justifyContent: compact ? 'center' : 'flex-start',
-            padding: 'var(--space-2) var(--space-3)',
-            borderRadius: 'var(--radius-md)',
-            textDecoration: 'none',
-            fontSize: 'var(--text-sm)',
-            fontWeight: 'var(--weight-medium)',
-            color: 'var(--text-secondary)',
-            backgroundColor: 'transparent',
-            transition: 'all var(--transition-fast)',
-            marginBottom: 'var(--space-2)',
-            border: '1px solid var(--border-default)',
-          }}
-        >
-          <LayoutDashboard size={18} />
-          {!compact && <span>Cores Dashboard</span>}
-        </a>
         <NavLink
           to="/my/tasks"
           onClick={onMobileClose}
@@ -307,6 +285,8 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
           </button>
         )}
       </div>}
+
+      <SuiteCoreNavigation current="planner" dashboardURL={coresDashboardURL()} compact={compact} />
 
       {compact && <div style={{ flex: 1 }} />}
 

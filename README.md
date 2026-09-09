@@ -1,5 +1,13 @@
 # Plannercore
 
+## Release 2.6.21
+
+PlannerCore läuft auf einer eigenen Domain unter `/` und im zentralen
+Pfadmodus vollständig unter `/plannercore/`. Assets, React-Routing,
+Branding, API-Aufrufe, Login-Rücksprung und Service-Worker verwenden denselben
+Mount; die Dashboard-Origin wird zur Laufzeit für CORS und die gemeinsame
+Suite-Navigation gesetzt.
+
 ## Einheitliches Cores Designsystem
 
 PlannerCore folgt dem verbindlichen Designvertrag aus [`nbt4/cores`](https://github.com/nbt4/cores/blob/main/docs/DESIGN_SYSTEM.md). Die generierten Dateien `web/src/cores-theme.css` und `web/src/lib/cores-design.ts` werden ausschließlich über das Umbrella-Skript synchronisiert und nie direkt editiert.
