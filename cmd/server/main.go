@@ -99,7 +99,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.21")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.22")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")

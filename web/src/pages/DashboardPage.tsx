@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { AlertTriangle, CalendarDays, CheckCircle2, ClipboardList, FolderKanban, RefreshCw, Sun } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { usePlans } from '../hooks/usePlans'
-import { suiteDateLabel, suiteGreeting } from '../lib/cores-design'
+import { suiteDateLabel, suiteGreeting, suiteLocale } from '../lib/cores-design'
 import { isTaskCompleted } from '../lib/taskCompletion'
 import { api } from '../services/plannerApi'
 
@@ -77,7 +77,7 @@ export default function DashboardPage() {
           <p className="suite-dashboard-subtitle">Deine Aufgaben, Termine und Pläne auf einen Blick.</p>
         </div>
         <div className="suite-dashboard-actions">
-          {lastUpdated && <span className="suite-dashboard-timestamp">Aktualisiert {lastUpdated.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</span>}
+          {lastUpdated && <span className="suite-dashboard-timestamp">Aktualisiert {lastUpdated.toLocaleTimeString(suiteLocale(), { hour: '2-digit', minute: '2-digit' })}</span>}
           <button type="button" className="suite-button" onClick={() => void load()} disabled={loading}><RefreshCw size={16} className={loading ? 'planner-spin' : ''} />Aktualisieren</button>
         </div>
       </header>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
           <header><div><h2>Jetzt bearbeiten</h2><p>Nach Fälligkeit priorisiert</p></div><AlertTriangle size={20} style={{ color: overview.overdue.length ? 'var(--color-warning)' : 'var(--color-success)' }} /></header>
           {overview.priorities.length === 0
             ? <div className="planner-dashboard-empty"><CheckCircle2 size={34} /><strong>Keine offenen Aufgaben</strong><span>Deine persönliche Liste ist erledigt.</span></div>
-            : <div>{overview.priorities.map((task) => <Link className="planner-dashboard-task" key={task.id} to={task.planId ? `/plan/${task.planId}/board` : '/my/tasks'}><span><strong>{task.title}</strong><small>{task.planName || 'Ohne Plan'}{task.dueDate ? ` · ${new Date(task.dueDate).toLocaleDateString('de-DE')}` : ''}</small></span><b>{task.priority === 'urgent' ? 'Dringend' : task.dueDate && new Date(task.dueDate).getTime() < Date.now() ? 'Überfällig' : 'Offen'}</b></Link>)}</div>}
+            : <div>{overview.priorities.map((task) => <Link className="planner-dashboard-task" key={task.id} to={task.planId ? `/plan/${task.planId}/board` : '/my/tasks'}><span><strong>{task.title}</strong><small>{task.planName || 'Ohne Plan'}{task.dueDate ? ` · ${new Date(task.dueDate).toLocaleDateString(suiteLocale())}` : ''}</small></span><b>{task.priority === 'urgent' ? 'Dringend' : task.dueDate && new Date(task.dueDate).getTime() < Date.now() ? 'Überfällig' : 'Offen'}</b></Link>)}</div>}
         </div>
 
         <div className="suite-card planner-dashboard-card">

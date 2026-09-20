@@ -9,6 +9,7 @@ import { STYLES } from '../../lib/constants';
 import { useBranding } from '../../hooks/useBranding';
 import { coresDashboardURL } from '../../lib/suite-auth';
 import { SuiteCoreNavigation } from './SuiteCoreNavigation';
+import { SuiteLanguageSwitcher } from '../../lib/SuiteLanguageSwitcher';
 
 interface SidebarProps {
   mobileOpen?: boolean;
@@ -289,6 +290,10 @@ export default function Sidebar({ mobileOpen = false, onMobileClose = () => {}, 
       <SuiteCoreNavigation current="planner" dashboardURL={coresDashboardURL()} compact={compact} />
 
       {compact && <div style={{ flex: 1 }} />}
+
+      <div style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', borderTop: '1px solid var(--border-divider)' }}>
+        <SuiteLanguageSwitcher compact={compact} />
+      </div>
 
       {user && (
         <div style={{ padding: compact ? 'var(--space-2)' : 'var(--space-3)', borderTop: '1px solid var(--border-divider)', color: 'var(--text-muted)', fontSize: 'var(--text-xs)' }}>

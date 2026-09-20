@@ -1,5 +1,11 @@
 # Plannercore
 
+## Release 2.6.22 – Deutsch und Englisch
+
+Die Sidebar bietet die suiteweite Sprachwahl. Navigation, zentrale Aktionen,
+Statusbegriffe, zugängliche Beschriftungen, Datumsformat und Begrüßung folgen der
+unter `cores_language` gespeicherten Auswahl.
+
 ## Release 2.6.21
 
 PlannerCore läuft auf einer eigenen Domain unter `/` und im zentralen
