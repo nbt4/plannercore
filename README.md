@@ -1,5 +1,11 @@
 # Plannercore
 
+## Release 2.6.23 – Vollständige Dashboard-Lokalisierung
+
+PlannerCore übersetzt nun auch gemischte deutsche und englische Quelltexte in
+beide Richtungen. Kennzahlen, Aufgabenprioritäten, Schnellstart und dynamische
+Zähler des Dashboards folgen vollständig der gemeinsamen Suite-Sprache.
+
 ## Release 2.6.22 – Deutsch und Englisch
 
 Die Sidebar bietet die suiteweite Sprachwahl. Navigation, zentrale Aktionen,
