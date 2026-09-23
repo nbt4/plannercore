@@ -1,5 +1,12 @@
 # Plannercore
 
+## Release 2.6.24 – Gemeinsames Datentransfer-Vokabular
+
+Die synchronisierten Deutsch-/Englisch-Ressourcen enthalten jetzt auch die
+suiteweit verwendeten Datensatz-, Feld-, Vorschau- und Konfliktbegriffe des
+zentralen Import-/Export-Arbeitsbereichs. Fachliche Nutzdaten und technische
+Spaltenschlüssel bleiben dabei unverändert.
+
 ## Release 2.6.23 – Vollständige Dashboard-Lokalisierung
 
 PlannerCore übersetzt nun auch gemischte deutsche und englische Quelltexte in
