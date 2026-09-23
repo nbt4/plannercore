@@ -1,5 +1,11 @@
 # Plannercore
 
+## Release 2.6.25 – Gemeinsames Etikettenbogen-Vokabular
+
+Die suiteweiten Deutsch-/Englisch-Ressourcen enthalten jetzt auch A4-
+Etikettenbögen, Papieroptionen, individuelle Stückzahlen und dynamische
+Druckmeldungen des WarehouseCore-Druckcenters.
+
 ## Release 2.6.24 – Gemeinsames Datentransfer-Vokabular
 
 Die synchronisierten Deutsch-/Englisch-Ressourcen enthalten jetzt auch die
