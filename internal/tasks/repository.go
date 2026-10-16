@@ -1,6 +1,8 @@
 package tasks
 
 import (
+	"fmt"
+	"gorm.io/gorm/clause"
 	"plannercore/internal/core"
 
 	"gorm.io/gorm"
@@ -16,7 +18,7 @@ func NewRepository(db *gorm.DB) *Repository {
 
 func (r *Repository) FindByPlanID(planID string, bucketID, labelID, assigneeID string) ([]core.Task, error) {
 	var tasks []core.Task
-	q := r.db.Where("plan_id = ?", planID)
+	q := r.db.Where("plan_id = ? AND EXISTS(SELECT 1 FROM planner_plans p WHERE p.id=planner_tasks.plan_id AND p.archived_at IS NULL)", planID)
 	if bucketID != "" {
 		q = q.Where("bucket_id = ?", bucketID)
 	}
@@ -47,7 +49,14 @@ func (r *Repository) Create(task *core.Task) error {
 }
 
 func (r *Repository) Update(task *core.Task) error {
-	return r.db.Save(task).Error
+	result := r.db.Model(&core.Task{}).Omit(clause.Associations).Where("id = ? AND updated_at = ?", task.ID, task.UpdatedAt).Select("*").Updates(task)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("record changed; reload before saving")
+	}
+	return nil
 }
 
 func (r *Repository) Delete(id string) error {
@@ -85,7 +94,7 @@ func (r *Repository) CopyAssignees(fromTaskID, toTaskID string) error {
 
 func (r *Repository) FindByAssignee(userID string, includeCompleted bool) ([]core.Task, error) {
 	var tasks []core.Task
-	query := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?)", userID)
+	query := r.db.Where("id IN (SELECT task_id FROM planner_task_assignees WHERE user_id = ?) AND EXISTS(SELECT 1 FROM planner_members m JOIN planner_plans p ON p.id=m.plan_id WHERE m.plan_id=planner_tasks.plan_id AND m.user_id=? AND p.archived_at IS NULL)", userID, userID)
 	if !includeCompleted {
 		query = query.Where("completed_at IS NULL")
 	}
@@ -96,7 +105,7 @@ func (r *Repository) FindByAssignee(userID string, includeCompleted bool) ([]cor
 
 func (r *Repository) FindMyDay(userID string) ([]core.Task, error) {
 	var tasks []core.Task
-	err := r.db.Where("id IN (SELECT task_id FROM planner_my_day WHERE user_id = ?)", userID).
+	err := r.db.Where("id IN (SELECT task_id FROM planner_my_day WHERE user_id = ?) AND EXISTS(SELECT 1 FROM planner_members m JOIN planner_plans p ON p.id=m.plan_id WHERE m.plan_id=planner_tasks.plan_id AND m.user_id=? AND p.archived_at IS NULL)", userID, userID).
 		Order("due_date ASC").Preload("Assignees").Preload("Labels").Find(&tasks).Error
 	return tasks, err
 }

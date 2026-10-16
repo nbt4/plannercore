@@ -131,7 +131,8 @@ func (sv *SessionValidator) RequirePlanMember(paramName string) gin.HandlerFunc 
 			return
 		}
 		var count int64
-		sv.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", planID, fmt.Sprintf("%d", user.UserID)).Count(&count)
+		allowArchived := c.Request.Method == http.MethodDelete && strings.HasSuffix(c.FullPath(), "/members/:userId")
+		sv.db.Table("planner_members m").Joins("JOIN planner_plans p ON p.id=m.plan_id").Where("m.plan_id = ? AND m.user_id = ? AND (? OR p.archived_at IS NULL)", planID, fmt.Sprintf("%d", user.UserID), allowArchived).Count(&count)
 		if count == 0 {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied — not a plan member"})
 			c.Abort()

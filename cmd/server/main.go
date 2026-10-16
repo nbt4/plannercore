@@ -23,6 +23,7 @@ import (
 	"plannercore/internal/goals"
 	"plannercore/internal/integration"
 	"plannercore/internal/labels"
+	"plannercore/internal/lifecycle"
 	"plannercore/internal/metrics"
 	"plannercore/internal/plans"
 	"plannercore/internal/sprints"
@@ -73,6 +74,10 @@ func main() {
 		slog.Error("Failed to get underlying sql.DB", "error", err)
 		os.Exit(1)
 	}
+	if err := lifecycle.EnsureSchema(sqlDB); err != nil {
+		slog.Error("Failed to initialize Planner lifecycle", "error", err)
+		os.Exit(1)
+	}
 	metrics.DBConnectionsOpen.Set(float64(sqlDB.Stats().OpenConnections))
 	brandingService := commonbranding.NewService(db, "planner")
 
@@ -99,7 +104,7 @@ func main() {
 	r.Use(metrics.Middleware())
 
 	// Health endpoint — placed BEFORE auth middleware, pings PostgreSQL
-	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.25")))
+	r.GET("/health", gin.WrapH(commonhealth.Handler(sqlDB, "plannercore", "2.6.26")))
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	brandingHandler := func(c *gin.Context) {
 		c.Header("Cache-Control", "no-cache")
@@ -165,7 +170,9 @@ func main() {
 	})
 
 	api := r.Group("/api/v1/planner")
-	api.Use(sessionValidator.Middleware())
+	api.Use(sessionValidator.Middleware(), lifecycle.DelegationBoundary())
+	plannerWorkflow := lifecycle.NewHandler(db)
+	api.POST("/mcp/:entity/:operation", plannerWorkflow.Change)
 
 	// Me endpoint - returns current user info (for auth check)
 	api.GET("/me", func(c *gin.Context) {
@@ -235,6 +242,7 @@ func main() {
 	planRepo := plans.NewRepository(db)
 	planService := plans.NewService(planRepo, eventBus)
 	planHandler := plans.NewHandler(planService, sessionValidator)
+	planHandler.SetWorkflow(plannerWorkflow)
 	planHandler.RegisterRoutes(api)
 
 	// Board (bucket) handlers (plan-scoped)
@@ -248,6 +256,24 @@ func main() {
 	taskRepo := tasks.NewRepository(db)
 	taskService := tasks.NewService(taskRepo, eventBus)
 	taskHandler := tasks.NewHandler(taskService, taskRepo, sessionValidator)
+	taskHandler.SetWorkflow(plannerWorkflow)
+	plannerWorkflow.Notify = func(plan, task, op, user string) {
+		event := core.PlanEvent{Type: core.EventTaskUpdated, PlanID: plan, UserID: user, Timestamp: time.Now().UTC()}
+		if op == "archive" {
+			event.Type = core.EventTaskDeleted
+			event.Payload = gin.H{"taskId": task}
+		} else {
+			value, err := taskService.GetTask(task)
+			if err != nil {
+				return
+			}
+			event.Payload = value
+			if op == "create" {
+				event.Type = core.EventTaskCreated
+			}
+		}
+		eventBus.Publish(plan, event)
+	}
 	taskHandler.RegisterRoutes(api, planRoutes)
 
 	// Label handlers (plan-scoped)

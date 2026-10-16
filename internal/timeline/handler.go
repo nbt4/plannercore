@@ -38,7 +38,7 @@ func (h *Handler) GetTimeline(c *gin.Context) {
 	}
 
 	var dependencies []core.Dependency
-	if err := h.db.Where("predecessor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?) OR successor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?)", planID, planID).
+	if err := h.db.Where("predecessor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ? AND archived_at IS NULL) AND successor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ? AND archived_at IS NULL)", planID, planID).
 		Find(&dependencies).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -88,7 +88,7 @@ func (h *Handler) AddDependency(c *gin.Context) {
 func (h *Handler) DeleteDependency(c *gin.Context) {
 	planID := c.Param("planId")
 	res := h.db.Where(
-		"id = ? AND (predecessor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?) OR successor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?))",
+		"id = ? AND (predecessor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ? AND archived_at IS NULL) AND successor_id IN (SELECT id FROM planner_tasks WHERE plan_id = ? AND archived_at IS NULL))",
 		c.Param("id"), planID, planID,
 	).Delete(&core.Dependency{})
 	if res.Error != nil {

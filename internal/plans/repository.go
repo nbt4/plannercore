@@ -1,7 +1,11 @@
 package plans
 
 import (
+	"fmt"
 	"plannercore/internal/core"
+	"time"
+
+	"gorm.io/gorm/clause"
 
 	"gorm.io/gorm"
 )
@@ -61,11 +65,18 @@ func (r *Repository) Create(plan *core.Plan) error {
 }
 
 func (r *Repository) Update(plan *core.Plan) error {
-	return r.db.Save(plan).Error
+	result := r.db.Model(&core.Plan{}).Omit(clause.Associations).Where("id = ? AND updated_at = ?", plan.ID, plan.UpdatedAt).Select("*").Updates(plan)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected != 1 {
+		return fmt.Errorf("record changed; reload before saving")
+	}
+	return nil
 }
 
 func (r *Repository) Delete(id string) error {
-	return r.db.Delete(&core.Plan{}, "id = ?", id).Error
+	return r.db.Model(&core.Plan{}).Where("id = ? AND archived_at IS NULL", id).Update("archived_at", gorm.Expr("clock_timestamp()")).Error
 }
 
 func (r *Repository) ToggleFavorite(id string) error {
@@ -112,11 +123,31 @@ func (r *Repository) RemoveMember(planID, userID string) error {
 
 func (r *Repository) Copy(originalID, newID, userID string) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
+		if e := tx.Exec(`SELECT set_config('cores.planner_user',?,true),set_config('cores.planner_origin','UI',true),set_config('cores.planner_operation','copy',true)`, userID).Error; e != nil {
+			return e
+		}
+		var role string
+		if e := tx.Raw(`SELECT role FROM planner_members WHERE plan_id=? AND user_id=? FOR SHARE NOWAIT`, originalID, userID).Row().Scan(&role); e != nil {
+			return e
+		}
+		var active bool
+		if e := tx.Raw(`SELECT is_active FROM users WHERE userid::text=? FOR SHARE NOWAIT`, userID).Row().Scan(&active); e != nil {
+			return e
+		}
+		if !active {
+			return fmt.Errorf("current active user required")
+		}
+
 		var original core.Plan
-		if err := tx.First(&original, "id = ?", originalID).Error; err != nil {
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE", Options: "NOWAIT"}).First(&original, "id = ?", originalID).Error; err != nil {
 			return err
 		}
+		if original.ArchivedAt != nil {
+			return fmt.Errorf("restore plan before copying")
+		}
 		newPlan := original
+		newPlan.CreatedAt = time.Now().UTC()
+		newPlan.UpdatedAt = newPlan.CreatedAt
 		newPlan.ID = newID
 		newPlan.Name = original.Name + " (Kopie)"
 		newPlan.IsFavorite = false

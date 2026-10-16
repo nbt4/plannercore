@@ -6,11 +6,13 @@ import (
 	"net/http"
 
 	"plannercore/internal/auth"
+	"plannercore/internal/lifecycle"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
+	workflow   *lifecycle.Handler
 	service    *Service
 	sessionVal *auth.SessionValidator
 }
@@ -18,6 +20,8 @@ type Handler struct {
 func NewHandler(service *Service, sv *auth.SessionValidator) *Handler {
 	return &Handler{service: service, sessionVal: sv}
 }
+
+func (h *Handler) SetWorkflow(w *lifecycle.Handler) { h.workflow = w }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	plans := rg.Group("/plans")
@@ -109,6 +113,25 @@ func (h *Handler) GetPlan(c *gin.Context) {
 }
 
 func (h *Handler) CreatePlan(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "plans", "create")
+		if c.IsAborted() {
+			return
+		}
+		v, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		result := v.(map[string]any)
+		plan, err := h.service.GetPlan(result["record"].(map[string]any)["id"].(string))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Committed record could not be loaded"})
+			return
+		}
+		c.JSON(201, plan)
+		return
+	}
+
 	var input struct {
 		Name        string `json:"name" binding:"required"`
 		Description string `json:"description"`
@@ -127,6 +150,25 @@ func (h *Handler) CreatePlan(c *gin.Context) {
 }
 
 func (h *Handler) UpdatePlan(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "plans", "update")
+		if c.IsAborted() {
+			return
+		}
+		v, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		result := v.(map[string]any)
+		plan, err := h.service.GetPlan(result["record"].(map[string]any)["id"].(string))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Committed record could not be loaded"})
+			return
+		}
+		c.JSON(200, plan)
+		return
+	}
+
 	var input struct {
 		Name        string `json:"name"`
 		Description string `json:"description"`
@@ -143,6 +185,19 @@ func (h *Handler) UpdatePlan(c *gin.Context) {
 }
 
 func (h *Handler) DeletePlan(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "plans", "archive")
+		if c.IsAborted() {
+			return
+		}
+		_, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		c.JSON(200, gin.H{"status": "deleted"})
+		return
+	}
+
 	if err := h.service.DeletePlan(c.Param("planId")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -151,6 +206,10 @@ func (h *Handler) DeletePlan(c *gin.Context) {
 }
 
 func (h *Handler) ToggleFavorite(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeFavorite(c)
+		return
+	}
 	if err := h.service.ToggleFavorite(c.Param("planId")); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
