@@ -6,12 +6,14 @@ import (
 
 	"plannercore/internal/auth"
 	"plannercore/internal/core"
+	"plannercore/internal/lifecycle"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
 type Handler struct {
+	workflow   *lifecycle.Handler
 	service    *Service
 	repo       *Repository
 	sessionVal *auth.SessionValidator
@@ -24,6 +26,8 @@ func NewHandler(service *Service, repo *Repository, sv *auth.SessionValidator) *
 // FIXED: RegisterRoutes now takes two groups — planRoutes (with plan membership)
 // for plan-scoped task routes, and api (auth only) for task-specific routes
 // that internally verify plan membership.
+func (h *Handler) SetWorkflow(w *lifecycle.Handler) { h.workflow = w }
+
 func (h *Handler) RegisterRoutes(api *gin.RouterGroup, planRoutes *gin.RouterGroup) {
 	// Plan-scoped task routes (plan membership checked by middleware)
 	planRoutes.GET("/:planId/tasks", h.ListTasks)
@@ -82,7 +86,7 @@ func (h *Handler) requirePlanMembershipVia(notFoundMsg string, resolve func(c *g
 			return
 		}
 		var count int64
-		h.repo.db.Table("planner_members").Where("plan_id = ? AND user_id = ?", planID, fmt.Sprintf("%d", user.UserID)).Count(&count)
+		h.repo.db.Table("planner_members m").Joins("JOIN planner_plans p ON p.id=m.plan_id").Where("m.plan_id = ? AND m.user_id = ? AND p.archived_at IS NULL", planID, fmt.Sprintf("%d", user.UserID)).Count(&count)
 		if count == 0 {
 			c.JSON(http.StatusForbidden, gin.H{"error": "access denied — not a plan member"})
 			c.Abort()
@@ -148,6 +152,25 @@ func (h *Handler) GetTask(c *gin.Context) {
 }
 
 func (h *Handler) CreateTask(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "tasks", "create")
+		if c.IsAborted() {
+			return
+		}
+		v, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		result := v.(map[string]any)
+		task, err := h.service.GetTask(result["record"].(map[string]any)["id"].(string))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Committed record could not be loaded"})
+			return
+		}
+		c.JSON(201, task)
+		return
+	}
+
 	var input struct {
 		Title    string  `json:"title" binding:"required"`
 		BucketID *string `json:"bucketId"`
@@ -166,6 +189,25 @@ func (h *Handler) CreateTask(c *gin.Context) {
 }
 
 func (h *Handler) UpdateTask(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "tasks", "update")
+		if c.IsAborted() {
+			return
+		}
+		v, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		result := v.(map[string]any)
+		task, err := h.service.GetTask(result["record"].(map[string]any)["id"].(string))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "Committed record could not be loaded"})
+			return
+		}
+		c.JSON(200, task)
+		return
+	}
+
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -181,6 +223,19 @@ func (h *Handler) UpdateTask(c *gin.Context) {
 }
 
 func (h *Handler) DeleteTask(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.Native(c, "tasks", "archive")
+		if c.IsAborted() {
+			return
+		}
+		_, ok := c.Get("planner_result")
+		if !ok {
+			return
+		}
+		c.JSON(200, gin.H{"status": "deleted"})
+		return
+	}
+
 	user, _ := h.sessionVal.GetCurrentUser(c)
 	if err := h.service.DeleteTask(c.Param("taskId"), fmt.Sprintf("%d", user.UserID)); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -303,6 +358,10 @@ func (h *Handler) ReorderTasks(c *gin.Context) {
 }
 
 func (h *Handler) AddChecklistItem(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeRelation(c, "checklist", "create")
+		return
+	}
 	var input struct {
 		Title string `json:"title" binding:"required"`
 	}
@@ -327,6 +386,10 @@ func (h *Handler) AddChecklistItem(c *gin.Context) {
 }
 
 func (h *Handler) UpdateChecklistItem(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeRelation(c, "checklist", "update")
+		return
+	}
 	var input struct {
 		Title       *string `json:"title"`
 		IsCompleted *bool   `json:"isCompleted"`
@@ -361,6 +424,10 @@ func (h *Handler) UpdateChecklistItem(c *gin.Context) {
 }
 
 func (h *Handler) DeleteChecklistItem(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeRelation(c, "checklist", "delete")
+		return
+	}
 	var item core.ChecklistItem
 	if err := h.repo.db.Select("task_id").First(&item, "id = ?", c.Param("id")).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "checklist item not found"})
@@ -378,6 +445,10 @@ func (h *Handler) DeleteChecklistItem(c *gin.Context) {
 }
 
 func (h *Handler) AddAssignee(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeRelation(c, "assignee", "create")
+		return
+	}
 	var input struct {
 		UserID string `json:"userId" binding:"required"`
 	}
@@ -398,6 +469,10 @@ func (h *Handler) AddAssignee(c *gin.Context) {
 }
 
 func (h *Handler) RemoveAssignee(c *gin.Context) {
+	if h.workflow != nil {
+		h.workflow.NativeRelation(c, "assignee", "delete")
+		return
+	}
 	if err := h.repo.db.Delete(&core.TaskAssignee{}, "task_id = ? AND user_id = ?",
 		c.Param("taskId"), c.Param("userId")).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

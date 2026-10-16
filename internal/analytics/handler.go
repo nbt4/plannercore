@@ -80,7 +80,7 @@ func (h *Handler) WorkloadChart(c *gin.Context) {
 	}
 	h.db.Table("planner_task_assignees").
 		Select("DISTINCT user_id").
-		Where("task_id IN (SELECT id FROM planner_tasks WHERE plan_id = ?)", planID).
+		Where("task_id IN (SELECT id FROM planner_tasks WHERE plan_id = ? AND archived_at IS NULL)", planID).
 		Scan(&assignees)
 
 	var results []WorkloadChartResult

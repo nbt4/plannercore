@@ -1,5 +1,15 @@
 # Plannercore
 
+## Planner-Lebenszyklus · PlannerCore 2.6.26 / MCP 1.5.69
+
+Pläne und Aufgaben lassen sich vollständig anlegen, gezielt ändern, mit ihren
+Verknüpfungen archivieren und wiederherstellen. Aktuelle Planmitgliedschaft,
+exakte Versionen, endgültiger Entwurf und gebundene Bestätigung schützen den
+atomaren Audit-/Historien-/Replay-Pfad. Wiederkehrende Aufgaben erzeugen beim
+Abschließen genau eine Folgeaufgabe innerhalb derselben Transaktion.
+Adminrechte ersetzen keine Planmitgliedschaft; Finanzrechte sind nicht nötig.
+[Vertrag und Prüfungen](docs/PLANNER_PLAN_TASK_LIFECYCLE.md).
+
 ## Release 2.6.25 – Gemeinsames Etikettenbogen-Vokabular
 
 Die suiteweiten Deutsch-/Englisch-Ressourcen enthalten jetzt auch A4-

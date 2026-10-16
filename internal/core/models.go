@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -54,6 +55,7 @@ func (Bucket) TableName() string {
 
 // Task represents a task/card within a bucket.
 type Task struct {
+	ArchivedAt              gorm.DeletedAt  `json:"archivedAt" gorm:"column:archived_at"`
 	ID                      string          `json:"id" gorm:"primaryKey;default:gen_random_uuid()"`
 	PlanID                  string          `json:"planId" gorm:"column:plan_id;index"`
 	BucketID                *string         `json:"bucketId" gorm:"column:bucket_id"`
